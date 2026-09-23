@@ -63,6 +63,7 @@ test('polling sends one notification per phone and suppresses repeated measureme
   const service = new PollService({
     config: {
       home,
+      pollIntervalSeconds: 0,
       opensky: { searchRadiusKm: 90 },
       trackHistorySeconds: 240,
       trackStateTtlSeconds: 900,

@@ -17,11 +17,21 @@ export class PollService {
   constructor(options) {
     Object.assign(this, options);
     this.running = false;
+    this.lastPollStartedAt = 0;
+    this.nowMilliseconds = options.nowMilliseconds ?? Date.now;
   }
 
   async poll() {
     if (this.running) return { status: 'skipped', reason: 'poll_already_running' };
+    const now = this.nowMilliseconds();
+    if (
+      this.lastPollStartedAt > 0 &&
+      now - this.lastPollStartedAt < this.config.pollIntervalSeconds * 1000
+    ) {
+      return { status: 'skipped', reason: 'source_poll_interval' };
+    }
     this.running = true;
+    this.lastPollStartedAt = now;
     try {
       return await this.pollOnce();
     } catch (error) {

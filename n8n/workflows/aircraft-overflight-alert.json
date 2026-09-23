@@ -1,0 +1,68 @@
+{
+  "name": "EPKK aircraft overflight alert",
+  "nodes": [
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "seconds",
+              "secondsInterval": 15
+            }
+          ]
+        }
+      },
+      "id": "06a8ac48-9db8-4a60-994f-acde3bb346c1",
+      "name": "Every 15 seconds",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.3,
+      "position": [
+        0,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "http://predictor:8080/poll",
+        "options": {
+          "timeout": 20000
+        }
+      },
+      "id": "e0b99fa4-6882-4568-9e4c-d327c245c96b",
+      "name": "Poll and predict",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        260,
+        0
+      ],
+      "onError": "continueRegularOutput"
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Every 15 seconds": {
+      "main": [
+        [
+          {
+            "node": "Poll and predict",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1",
+    "timezone": "Europe/Warsaw",
+    "saveManualExecutions": false
+  },
+  "versionId": "0c5af7d2-27df-48ad-885f-0f62c40e818a",
+  "meta": {
+    "templateCredsSetupCompleted": true
+  },
+  "tags": []
+}
