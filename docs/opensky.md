@@ -13,4 +13,6 @@ The default search box is derived from `OPENSKY_SEARCH_RADIUS_KM=90` around EPKK
 
 HTTP 401, 429, timeouts, malformed replies, and other source failures produce a sanitized degraded result. The following n8n execution will still run. On 429, inspect the OpenSky response headers and increase `ADSB_POLL_INTERVAL_SECONDS` if necessary.
 
+Only state vectors with a numeric `time_position` are accepted. `last_contact` is not a position timestamp: it can advance when OpenSky receives a non-position Mode S message while latitude and longitude remain stale. The adapter therefore drops coordinates without `time_position` instead of fabricating a new trajectory sample.
+
 Official reference: [OpenSky REST API](https://openskynetwork.github.io/opensky-api/rest.html).

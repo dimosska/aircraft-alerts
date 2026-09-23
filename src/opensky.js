@@ -9,7 +9,9 @@ function boundingBox(center, radiusKm) {
   };
 }
 function normalizeState(state) {
-  const timestamp = state[3] ?? state[4];
+  // time_position belongs to latitude/longitude. last_contact may advance on
+  // non-position Mode S messages while the coordinates remain stale.
+  const timestamp = state[3];
   if (!Number.isFinite(timestamp) || !Number.isFinite(state[5]) || !Number.isFinite(state[6])) {
     return null;
   }
