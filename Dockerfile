@@ -7,6 +7,7 @@ RUN npm ci --ignore-scripts --no-audit --no-fund
 COPY src ./src
 COPY test ./test
 COPY scripts ./scripts
+COPY n8n ./n8n
 RUN npm test
 
 FROM node:24.14.1-alpine3.23 AS production
