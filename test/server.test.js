@@ -2,7 +2,7 @@ import assert from 'node:assert/strict';
 import { test } from 'node:test';
 import { handleRequest } from '../src/server.js';
 
-test('health endpoint reports ok', async (t) => {
+test('health endpoint reports ok', async () => {
   let status;
   let headers;
   let body;
@@ -16,7 +16,7 @@ test('health endpoint reports ok', async (t) => {
     },
   };
 
-  handleRequest({ method: 'GET', url: '/health' }, response);
+  await handleRequest({ method: 'GET', url: '/health' }, response);
 
   assert.equal(status, 200);
   assert.deepEqual(headers, { 'content-type': 'application/json' });
