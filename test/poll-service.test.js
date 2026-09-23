@@ -104,3 +104,77 @@ test('polling sends one notification per phone and suppresses repeated measureme
   assert.match(published[0].notification.message, /приблизно через 2 хв/);
   assert.match(published[0].notification.message, /confidence:/);
 });
+
+test('an ntfy failure is retried on the next workflow run', async () => {
+  const times = [1740, 1770, 1800, 1830];
+  const feeds = times.map((timestamp) => ({
+    timestamp,
+    states: [aircraftAt(timestamp, 1920 - timestamp)],
+    rateLimitRemaining: '3999',
+  }));
+  let publishAttempts = 0;
+  const service = new PollService({
+    config: {
+      home,
+      pollIntervalSeconds: 0,
+      opensky: { searchRadiusKm: 90 },
+      trackHistorySeconds: 240,
+      trackStateTtlSeconds: 900,
+      prediction: {
+        alertLeadTimeSeconds: 120,
+        alertWindowSeconds: 30,
+        maxOverflightDistanceMeters: 1000,
+        minPredictionConfidence: 0.68,
+        minConfirmationSamples: 3,
+        minTrackSpanSeconds: 50,
+        maxTrackStddevDegrees: 12,
+        approachCorridorHalfWidthMeters: 8000,
+        approachCorridorLengthMeters: 100000,
+        runwayHeadingToleranceDegrees: 35,
+      },
+      notifications: { targets: [{ id: 'iphone1', topic: 'topic-1' }] },
+    },
+    airport,
+    adsbClient: { states: async () => feeds.shift() },
+    stateStore: new MemoryStateStore(),
+    ntfyClient: {
+      publish: async () => {
+        publishAttempts += 1;
+        if (publishAttempts === 1) throw new Error('temporary ntfy failure');
+      },
+    },
+    logger: () => {},
+  });
+
+  await service.poll();
+  await service.poll();
+  const failedPublish = await service.poll();
+  assert.equal(failedPublish.status, 'ok');
+  assert.equal(failedPublish.alerts.length, 0);
+  assert.equal(publishAttempts, 1);
+
+  const retriedPublish = await service.poll();
+  assert.equal(retriedPublish.alerts.length, 1);
+  assert.equal(publishAttempts, 2);
+});
+
+test('an OpenSky failure does not prevent the next poll', async () => {
+  let calls = 0;
+  const service = new PollService({
+    config: { pollIntervalSeconds: 0, opensky: { searchRadiusKm: 90 } },
+    airport,
+    adsbClient: {
+      states: async () => {
+        calls += 1;
+        if (calls === 1) throw new Error('temporary OpenSky failure');
+        return { timestamp: 1800, states: [], rateLimitRemaining: '3999' };
+      },
+    },
+    stateStore: new MemoryStateStore(),
+    ntfyClient: { publish: async () => {} },
+    logger: () => {},
+  });
+
+  assert.equal((await service.poll()).status, 'degraded');
+  assert.equal((await service.poll()).status, 'ok');
+});

@@ -156,7 +156,7 @@ export function evaluateTrack(input) {
   const etaSeconds = cpa?.timeSeconds ?? null;
   const inAlertWindow =
     etaSeconds !== null &&
-    Math.abs(etaSeconds - config.alertLeadTimeSeconds) <= config.alertWindowSeconds;
+    Math.abs(etaSeconds - config.alertLeadTimeSeconds) <= config.alertWindowSeconds + 1e-6;
   if (!inAlertWindow) reasons.push('outside_alert_window');
   if (input.alreadyAlerted) reasons.push('already_alerted');
 
