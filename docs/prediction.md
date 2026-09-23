@@ -5,6 +5,7 @@
 An aircraft produces an alert when its latest trustworthy OpenSky state satisfies every condition:
 
 - its ADS-B emitter category is in `AIRCRAFT_ADSB_CATEGORY_ALLOWLIST` (`3,4,5,6,7` by default), or its exact transponder address is in `AIRCRAFT_ICAO24_ALLOWLIST`;
+- when category is unknown (`0`, `1`, or missing), `ALLOW_OPERATOR_CALLSIGN_FALLBACK=true` also accepts an ICAO operator-style callsign containing a flight number;
 - its distance from the EPKK reference point is at most `OPENSKY_SEARCH_RADIUS_KM` (50 km by default);
 - its distance from EPKK is greater than `MIN_AIRPORT_DISTANCE_KM` (8 km by default);
 - its barometric altitude (or geometric altitude when barometric is absent) is below `MAX_CANDIDATE_ALTITUDE_FEET` (5,000 ft by default);
@@ -14,7 +15,7 @@ An aircraft produces an alert when its latest trustworthy OpenSky state satisfie
 
 OpenSky does not provide a trustworthy live destination or landing ETA. This intentionally broad rule follows the deployment assumption that low descending civil traffic in the configured area is approaching KRK. The notification does not claim an exact overflight time.
 
-The live API does not identify an aircraft as private, corporate, scheduled airline or military. Its category `2` means `Light` (below 15,500 lb), while category `3` starts at 15,500 lb. The default allowlist therefore rejects light Cessna-class general aviation and missing/unknown categories while retaining business jets, regional and mainline airliners, heavy transports and high-performance aircraft. Some very light business jets or military trainers may be excluded; add a known six-digit ICAO24 address to `AIRCRAFT_ICAO24_ALLOWLIST` when an exact exception is needed.
+The live API does not identify an aircraft as private, corporate, scheduled airline or military. Its category `2` means `Light` (below 15,500 lb), while category `3` starts at 15,500 lb. The default allowlist therefore rejects explicit light Cessna-class general aviation while retaining business jets, regional and mainline airliners, heavy transports and high-performance aircraft. Category `0`, `1`, or missing data is ambiguous, so the callsign fallback retains identifiers such as `RYR9DA` but rejects registration-style identifiers such as `SPABC`. Some very light business jets or military trainers may still be excluded; add a known six-digit ICAO24 address to `AIRCRAFT_ICAO24_ALLOWLIST` when an exact exception is needed.
 
 `time_position` is mandatory. `last_contact` is never substituted for it because non-position Mode S messages can update `last_contact` while coordinates remain stale.
 

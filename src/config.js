@@ -124,6 +124,11 @@ export function loadConfig(environment = process.env) {
     aircraftFilter: {
       allowedIcao24,
       allowedCategories,
+      allowOperatorCallsignFallback: booleanValue(
+        environment,
+        'ALLOW_OPERATOR_CALLSIGN_FALLBACK',
+        true,
+      ),
     },
     trackHistorySeconds: numberValue(environment, 'TRACK_HISTORY_SECONDS', 240, { minimum: 90 }),
     trackStateTtlSeconds: numberValue(environment, 'TRACK_STATE_TTL_SECONDS', 900, { minimum: 300 }),

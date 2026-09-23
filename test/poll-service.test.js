@@ -69,6 +69,7 @@ test('polling sends one notification per phone and suppresses repeated measureme
       aircraftFilter: {
         allowedIcao24: [],
         allowedCategories: [3, 4, 5, 6, 7],
+        allowOperatorCallsignFallback: true,
       },
       trackHistorySeconds: 240,
       trackStateTtlSeconds: 900,
@@ -118,6 +119,7 @@ test('an ntfy failure is retried on the next workflow run', async () => {
       aircraftFilter: {
         allowedIcao24: [],
         allowedCategories: [3, 4, 5, 6, 7],
+        allowOperatorCallsignFallback: true,
       },
       trackHistorySeconds: 240,
       trackStateTtlSeconds: 900,
@@ -160,7 +162,11 @@ test('light general-aviation category is stored but does not notify', async () =
       home,
       pollIntervalSeconds: 0,
       opensky: { searchRadiusKm: 50 },
-      aircraftFilter: { allowedIcao24: [], allowedCategories: [3, 4, 5, 6, 7] },
+      aircraftFilter: {
+        allowedIcao24: [],
+        allowedCategories: [3, 4, 5, 6, 7],
+        allowOperatorCallsignFallback: true,
+      },
       trackHistorySeconds: 240,
       trackStateTtlSeconds: 900,
       prediction: {

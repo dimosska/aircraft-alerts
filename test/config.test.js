@@ -31,6 +31,7 @@ test('configuration accepts OpenSky production defaults', () => {
   assert.equal(config.prediction.maxTrueTrackDegrees, 270);
   assert.equal(config.notifications.targets.length, 2);
   assert.deepEqual(config.aircraftFilter.allowedCategories, [3, 4, 5, 6, 7]);
+  assert.equal(config.aircraftFilter.allowOperatorCallsignFallback, true);
   assert.deepEqual(config.home, { lat: 50.1, lon: 19.2, elevationMeters: 0 });
 });
 

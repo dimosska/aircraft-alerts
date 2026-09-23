@@ -80,9 +80,10 @@ Important filtering variables:
 - `MIN_TRUE_TRACK_DEGREES=180`
 - `MAX_TRUE_TRACK_DEGREES=270`
 - `AIRCRAFT_ADSB_CATEGORY_ALLOWLIST=3,4,5,6,7`
+- `ALLOW_OPERATOR_CALLSIGN_FALLBACK=true`
 - `AIRCRAFT_ICAO24_ALLOWLIST=` (optional exact overrides)
 
-OpenSky category `2` means `Light` (below 15,500 lb) and is excluded by default. Categories `3` through `7` cover aircraft from `Small` (15,500–75,000 lb) through high-performance aircraft. Because the state-vector API does not identify ownership or mission, this weight/emitter-category gate is intentionally used instead of guessing from a callsign. An aircraft with missing category data is rejected unless its ICAO24 address is explicitly allowlisted.
+OpenSky category `2` means `Light` (below 15,500 lb) and is excluded by default. Categories `3` through `7` cover aircraft from `Small` (15,500–75,000 lb) through high-performance aircraft. When OpenSky reports category `0`, `1`, or no category, a standard ICAO operator-style callsign containing a flight number (for example `RYR9DA`, `LOT123`, `NJE123`, or `PLF101`) is accepted. Registration-style callsigns such as `SPABC` are not accepted by this fallback. Exact ICAO24 overrides remain available for known exceptions.
 
 The EPKK runway headings and thresholds in `src/airports/epkk.js` come from AIP Poland EPKK AD 2.12. Home coordinates are never stored in this file.
 
