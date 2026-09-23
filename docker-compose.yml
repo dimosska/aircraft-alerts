@@ -29,7 +29,7 @@ services:
     image: docker.n8n.io/n8nio/n8n:2.40.5
     restart: unless-stopped
     ports:
-      - "127.0.0.1:${N8N_PORT:-5678}:5678"
+      - "${N8N_PORT:-5678}:5678"
     environment:
       TZ: ${TZ:-Europe/Warsaw}
       GENERIC_TIMEZONE: ${TZ:-Europe/Warsaw}
