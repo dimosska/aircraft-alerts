@@ -45,6 +45,17 @@ export function loadConfig(environment = process.env) {
   if (minAirportDistanceKm >= openskySearchRadiusKm) {
     throw new Error('MIN_AIRPORT_DISTANCE_KM must be smaller than OPENSKY_SEARCH_RADIUS_KM');
   }
+  const minTrueTrackDegrees = numberValue(environment, 'MIN_TRUE_TRACK_DEGREES', 180, {
+    minimum: 0,
+    maximum: 360,
+  });
+  const maxTrueTrackDegrees = numberValue(environment, 'MAX_TRUE_TRACK_DEGREES', 270, {
+    minimum: 0,
+    maximum: 360,
+  });
+  if (minTrueTrackDegrees >= maxTrueTrackDegrees) {
+    throw new Error('MIN_TRUE_TRACK_DEGREES must be smaller than MAX_TRUE_TRACK_DEGREES');
+  }
 
   return {
     port: numberValue(environment, 'PORT', 8080, { minimum: 1, maximum: 65535 }),
@@ -76,6 +87,8 @@ export function loadConfig(environment = process.env) {
       }),
       minAirportDistanceKilometers: minAirportDistanceKm,
       maxAirportDistanceKilometers: openskySearchRadiusKm,
+      minTrueTrackDegrees,
+      maxTrueTrackDegrees,
       minDescentRateMetersPerSecond: numberValue(environment, 'MIN_DESCENT_RATE_MPS', 0.5, {
         minimum: 0,
       }),

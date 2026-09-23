@@ -8,6 +8,7 @@ An aircraft produces an alert when its latest trustworthy OpenSky state satisfie
 - its distance from EPKK is greater than `MIN_AIRPORT_DISTANCE_KM` (8 km by default);
 - its barometric altitude (or geometric altitude when barometric is absent) is below `MAX_CANDIDATE_ALTITUDE_FEET` (7,000 ft by default);
 - its ADS-B vertical rate, or the altitude trend across available positions, is at most `-MIN_DESCENT_RATE_MPS`;
+- its `true_track` is strictly greater than `MIN_TRUE_TRACK_DEGREES` (180°) and strictly less than `MAX_TRUE_TRACK_DEGREES` (270°);
 - its position is no more than 45 seconds old.
 
 OpenSky does not provide a trustworthy live destination or landing ETA. This intentionally broad rule follows the deployment assumption that low descending civil traffic in the configured area is approaching KRK. The notification does not claim an exact overflight time.
@@ -27,4 +28,4 @@ Redis keeps a time-limited approach session for each ICAO24. Once a notification
 - No real coordinates, topic, OAuth credential or token appears in Git.
 - Several real approaches are observed before relying on the system operationally.
 
-The automated suite covers the altitude boundary, descent, inner 8 km exclusion, outer 90 km boundary, stale positions, altitude-trend fallback, per-phone deduplication and retry after an ntfy failure.
+The automated suite covers the altitude boundary, descent, inner 8 km exclusion, outer 90 km boundary, strict true-track boundaries, stale positions, altitude-trend fallback, per-phone deduplication, Unicode ntfy titles and retry after an ntfy failure.

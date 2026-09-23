@@ -2,7 +2,7 @@
 
 Production-oriented MVP that detects low, descending aircraft near Kraków Airport and sends one ntfy notification per iPhone.
 
-The system does not use flight schedules. It alerts when a fresh OpenSky position is within 90 km of EPKK but more than 8 km from the airport, below 7,000 ft, and descending. Redis suppresses subsequent notifications for the same aircraft approach.
+The system does not use flight schedules. It alerts when a fresh OpenSky position is within 90 km of EPKK but more than 8 km from the airport, below 7,000 ft, descending, and has a true track strictly between 180° and 270°. Redis suppresses subsequent notifications for the same aircraft approach.
 
 ## Architecture
 
@@ -77,6 +77,8 @@ Important filtering variables:
 - `MAX_CANDIDATE_ALTITUDE_FEET=7000`
 - `MIN_AIRPORT_DISTANCE_KM=8`
 - `MIN_DESCENT_RATE_MPS=0.5`
+- `MIN_TRUE_TRACK_DEGREES=180`
+- `MAX_TRUE_TRACK_DEGREES=270`
 
 The EPKK runway headings and thresholds in `src/airports/epkk.js` come from AIP Poland EPKK AD 2.12. Home coordinates are never stored in this file.
 

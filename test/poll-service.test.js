@@ -46,7 +46,7 @@ function aircraftAt(timestamp, etaAtTimestamp) {
     ...fromLocalMeters({ x, y: 0 }, origin),
     altitudeMeters: 2000,
     speedMetersPerSecond: 100,
-    trackDegrees: 90,
+    trackDegrees: 225,
     verticalRateMetersPerSecond: -3,
   };
 }

@@ -6,6 +6,8 @@ const DEFAULTS = Object.freeze({
   maxCandidateAltitudeFeet: 7000,
   minAirportDistanceKilometers: 8,
   maxAirportDistanceKilometers: 90,
+  minTrueTrackDegrees: 180,
+  maxTrueTrackDegrees: 270,
   minDescentRateMetersPerSecond: 0.5,
   maxPositionAgeSeconds: 45,
 });
@@ -52,6 +54,15 @@ export function evaluateTrack(input) {
   const maximumAirportDistanceMeters = config.maxAirportDistanceKilometers * 1000;
   if (airportDistanceMeters <= minimumAirportDistanceMeters) reasons.push('too_close_to_airport');
   if (airportDistanceMeters > maximumAirportDistanceMeters) reasons.push('outside_search_radius');
+
+  const trueTrackDegrees = Number.isFinite(current.trackDegrees) ? current.trackDegrees : null;
+  if (trueTrackDegrees === null) reasons.push('unknown_track');
+  else if (
+    trueTrackDegrees <= config.minTrueTrackDegrees ||
+    trueTrackDegrees >= config.maxTrueTrackDegrees
+  ) {
+    reasons.push('track_outside_range');
+  }
   if (input.alreadyAlerted) reasons.push('already_alerted');
 
   const eligible = reasons.length === 0;
@@ -68,6 +79,12 @@ export function evaluateTrack(input) {
     withinDistanceBand:
       airportDistanceMeters > minimumAirportDistanceMeters &&
       airportDistanceMeters <= maximumAirportDistanceMeters
+        ? 1
+        : 0,
+    trackWithinRange:
+      trueTrackDegrees !== null &&
+      trueTrackDegrees > config.minTrueTrackDegrees &&
+      trueTrackDegrees < config.maxTrueTrackDegrees
         ? 1
         : 0,
   };
@@ -90,7 +107,7 @@ export function evaluateTrack(input) {
     currentAltitudeFeet,
     predictedAltitudeMslMeters: null,
     predictedAltitudeAboveHomeMeters: null,
-    trackDegrees: current.trackDegrees,
+    trackDegrees: trueTrackDegrees,
     trackStddevDegrees: null,
     descentRateMetersPerSecond,
     cpaEtaSpreadSeconds: null,

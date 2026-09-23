@@ -14,6 +14,8 @@ const baseConfig = {
   maxCandidateAltitudeFeet: 7000,
   minAirportDistanceKilometers: 8,
   maxAirportDistanceKilometers: 90,
+  minTrueTrackDegrees: 180,
+  maxTrueTrackDegrees: 270,
   minDescentRateMetersPerSecond: 0.5,
 };
 
@@ -22,13 +24,14 @@ function sample({
   airportDistanceMeters = 20_000,
   altitudeMeters = 2_000,
   verticalRateMetersPerSecond = -3,
+  trackDegrees = 225,
 } = {}) {
   return {
     timestamp,
     ...fromLocalMeters({ x: -airportDistanceMeters, y: 0 }, airport.reference),
     altitudeMeters,
     speedMetersPerSecond: 100,
-    trackDegrees: 90,
+    trackDegrees,
     verticalRateMetersPerSecond,
   };
 }
@@ -79,6 +82,22 @@ test('stale position does not alert', () => {
   const result = evaluate([sample({ timestamp: nowSeconds - 60 })]);
   assert.equal(result.shouldAlert, false);
   assert.ok(result.reasons.includes('stale_position'));
+});
+
+test('true track must be strictly greater than 180 and less than 270 degrees', () => {
+  for (const trackDegrees of [0, 180, 270, 359]) {
+    const result = evaluate([sample({ trackDegrees })]);
+    assert.equal(result.shouldAlert, false, `track ${trackDegrees} should not alert`);
+    assert.ok(result.reasons.includes('track_outside_range'));
+  }
+  assert.equal(evaluate([sample({ trackDegrees: 180.1 })]).shouldAlert, true);
+  assert.equal(evaluate([sample({ trackDegrees: 269.9 })]).shouldAlert, true);
+});
+
+test('missing true track does not alert', () => {
+  const result = evaluate([sample({ trackDegrees: null })]);
+  assert.equal(result.shouldAlert, false);
+  assert.ok(result.reasons.includes('unknown_track'));
 });
 
 test('altitude history confirms descent when ADS-B vertical rate is absent', () => {

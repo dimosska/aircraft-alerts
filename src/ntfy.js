@@ -1,3 +1,9 @@
+function encodeHeader(value) {
+  return /^[\x20-\x7e]*$/.test(value)
+    ? value
+    : `=?UTF-8?B?${Buffer.from(value, 'utf8').toString('base64')}?=`;
+}
+
 export class NtfyClient {
   constructor(options) {
     this.baseUrl = options.baseUrl;
@@ -10,7 +16,7 @@ export class NtfyClient {
     const response = await this.fetch(`${this.baseUrl}/${encodeURIComponent(topic)}`, {
       method: 'POST',
       headers: {
-        title: notification.title,
+        title: encodeHeader(notification.title),
         priority: this.priority,
         tags: 'airplane,warning',
         'content-type': 'text/plain; charset=utf-8',

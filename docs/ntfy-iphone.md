@@ -26,4 +26,6 @@ docker compose run --rm --no-deps predictor node scripts/push-smoke.js iphone2
 
 Both commands should print only the target identifier and should produce one notification on the corresponding phone. If delivery fails, verify the topic character-for-character and check iOS notification permissions, Focus mode, and Background App Refresh.
 
+Notification titles are encoded as RFC 2047 before being placed in HTTP headers, allowing Ukrainian text to work with Node.js `fetch` and ntfy.
+
 Official references: [ntfy phone subscriptions](https://docs.ntfy.sh/subscribe/phone/) and [publishing/API limits](https://docs.ntfy.sh/publish/).
