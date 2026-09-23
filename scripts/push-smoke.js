@@ -22,7 +22,7 @@ const client = new NtfyClient({ baseUrl, priority: process.env.NTFY_PRIORITY ?? 
 
 for (const target of targets) {
   await client.publish(target.topic, {
-    title: 'Aircraft Alerts test',
+    title: 'Тест Aircraft Alerts',
     message: `Тестове push-повідомлення для ${target.id}. Система налаштована правильно.`,
   });
   console.log(JSON.stringify({ level: 'info', event: 'test_notification_sent', target: target.id }));
