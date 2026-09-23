@@ -1,5 +1,6 @@
 import { evaluateTrack } from './prediction.js';
 import { notificationForAircraft } from './ntfy.js';
+import { classifyAircraft } from './aircraft-classifier.js';
 
 function appendSample(existing, aircraft, nowSeconds, historySeconds) {
   const samples = (existing?.samples ?? []).filter(
@@ -57,6 +58,7 @@ export class PollService {
 
     for (const aircraft of aircraftValues) {
       const existing = existingTracks.get(aircraft.icao24);
+      const classification = classifyAircraft(aircraft, this.config.aircraftFilter);
       const samples = appendSample(existing, aircraft, feed.timestamp, this.config.trackHistorySeconds);
       const approachId = approachIdentifier(aircraft, existing, samples);
       const prediction = evaluateTrack({
@@ -67,6 +69,7 @@ export class PollService {
         airport: this.airport,
         nowSeconds: feed.timestamp,
         config: this.config.prediction,
+        aircraftClassification: classification,
       });
       if (prediction.eligible) candidates += 1;
       const predictions = [...(existing?.predictions ?? [])];
@@ -85,6 +88,7 @@ export class PollService {
           confidence: prediction.confidence,
           reasons: prediction.reasons,
           runway: prediction.runway,
+          aircraftMatchedBy: classification.matchedBy,
         },
       };
       updatedTracks.push({ icao24: aircraft.icao24, state });
@@ -105,6 +109,7 @@ export class PollService {
             airportDistanceKilometers: Number(
               (prediction.airportDistanceMeters / 1000).toFixed(1),
             ),
+            aircraftCategory: aircraft.category,
           });
         } catch (error) {
           await this.stateStore.releaseAlert(approachId, target.id);

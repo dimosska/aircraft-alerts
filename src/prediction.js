@@ -3,9 +3,9 @@ import { haversineDistanceMeters, linearSlope } from './geo.js';
 const FEET_PER_METER = 3.280839895;
 
 const DEFAULTS = Object.freeze({
-  maxCandidateAltitudeFeet: 7000,
+  maxCandidateAltitudeFeet: 5000,
   minAirportDistanceKilometers: 8,
-  maxAirportDistanceKilometers: 90,
+  maxAirportDistanceKilometers: 50,
   minTrueTrackDegrees: 180,
   maxTrueTrackDegrees: 270,
   minDescentRateMetersPerSecond: 0.5,
@@ -25,6 +25,7 @@ export function evaluateTrack(input) {
   }
 
   const current = samples.at(-1);
+  if (input.aircraftClassification?.eligible === false) reasons.push('aircraft_not_selected');
   const positionAgeSeconds = Math.max(0, nowSeconds - current.timestamp);
   if (positionAgeSeconds > config.maxPositionAgeSeconds) reasons.push('stale_position');
 

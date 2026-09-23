@@ -49,6 +49,7 @@ test('OpenSky client uses OAuth2, normalizes states, and rejects coordinates wit
     trackDegrees: 78,
     verticalRateMetersPerSecond: -3,
     positionSource: 0,
+    category: 4,
   });
   assert.equal(result.rateLimitRemaining, '3999');
 });

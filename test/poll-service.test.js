@@ -41,10 +41,11 @@ function aircraftAt(timestamp, etaAtTimestamp) {
   const x = -12_000 - 100 * etaAtTimestamp;
   return {
     icao24: 'abc123',
-    callsign: 'LOT123',
+    callsign: 'NJE123',
+    category: 3,
     timestamp,
     ...fromLocalMeters({ x, y: 0 }, origin),
-    altitudeMeters: 2000,
+    altitudeMeters: 1400,
     speedMetersPerSecond: 100,
     trackDegrees: 225,
     verticalRateMetersPerSecond: -3,
@@ -64,13 +65,17 @@ test('polling sends one notification per phone and suppresses repeated measureme
     config: {
       home,
       pollIntervalSeconds: 0,
-      opensky: { searchRadiusKm: 90 },
+      opensky: { searchRadiusKm: 50 },
+      aircraftFilter: {
+        allowedIcao24: [],
+        allowedCategories: [3, 4, 5, 6, 7],
+      },
       trackHistorySeconds: 240,
       trackStateTtlSeconds: 900,
       prediction: {
-        maxCandidateAltitudeFeet: 7000,
+        maxCandidateAltitudeFeet: 5000,
         minAirportDistanceKilometers: 8,
-        maxAirportDistanceKilometers: 90,
+        maxAirportDistanceKilometers: 50,
         minDescentRateMetersPerSecond: 0.5,
       },
       notifications: {
@@ -109,13 +114,17 @@ test('an ntfy failure is retried on the next workflow run', async () => {
     config: {
       home,
       pollIntervalSeconds: 0,
-      opensky: { searchRadiusKm: 90 },
+      opensky: { searchRadiusKm: 50 },
+      aircraftFilter: {
+        allowedIcao24: [],
+        allowedCategories: [3, 4, 5, 6, 7],
+      },
       trackHistorySeconds: 240,
       trackStateTtlSeconds: 900,
       prediction: {
-        maxCandidateAltitudeFeet: 7000,
+        maxCandidateAltitudeFeet: 5000,
         minAirportDistanceKilometers: 8,
-        maxAirportDistanceKilometers: 90,
+        maxAirportDistanceKilometers: 50,
         minDescentRateMetersPerSecond: 0.5,
       },
       notifications: { targets: [{ id: 'iphone1', topic: 'topic-1' }] },
@@ -140,6 +149,42 @@ test('an ntfy failure is retried on the next workflow run', async () => {
   const retriedPublish = await service.poll();
   assert.equal(retriedPublish.alerts.length, 1);
   assert.equal(publishAttempts, 2);
+});
+
+test('light general-aviation category is stored but does not notify', async () => {
+  const lightAircraft = { ...aircraftAt(1800, 120), callsign: 'SPABC', category: 2 };
+  const published = [];
+  const stateStore = new MemoryStateStore();
+  const service = new PollService({
+    config: {
+      home,
+      pollIntervalSeconds: 0,
+      opensky: { searchRadiusKm: 50 },
+      aircraftFilter: { allowedIcao24: [], allowedCategories: [3, 4, 5, 6, 7] },
+      trackHistorySeconds: 240,
+      trackStateTtlSeconds: 900,
+      prediction: {
+        maxCandidateAltitudeFeet: 5000,
+        minAirportDistanceKilometers: 8,
+        maxAirportDistanceKilometers: 50,
+        minDescentRateMetersPerSecond: 0.5,
+      },
+      notifications: { targets: [{ id: 'iphone1', topic: 'topic-1' }] },
+    },
+    airport,
+    adsbClient: {
+      states: async () => ({ timestamp: 1800, states: [lightAircraft], rateLimitRemaining: '3999' }),
+    },
+    stateStore,
+    ntfyClient: { publish: async (...args) => published.push(args) },
+    logger: () => {},
+  });
+
+  const result = await service.poll();
+  assert.equal(result.candidates, 0);
+  assert.equal(result.alerts.length, 0);
+  assert.equal(published.length, 0);
+  assert.ok(stateStore.tracks.get('abc123').lastEvaluation.reasons.includes('aircraft_not_selected'));
 });
 
 test('an OpenSky failure does not prevent the next poll', async () => {

@@ -24,12 +24,13 @@ test('configuration accepts OpenSky production defaults', () => {
   const config = loadConfig(validEnvironment());
   assert.equal(config.adsbSource, 'opensky');
   assert.equal(config.pollIntervalSeconds, 30);
-  assert.equal(config.prediction.maxCandidateAltitudeFeet, 7000);
+  assert.equal(config.prediction.maxCandidateAltitudeFeet, 5000);
   assert.equal(config.prediction.minAirportDistanceKilometers, 8);
-  assert.equal(config.prediction.maxAirportDistanceKilometers, 90);
+  assert.equal(config.prediction.maxAirportDistanceKilometers, 50);
   assert.equal(config.prediction.minTrueTrackDegrees, 180);
   assert.equal(config.prediction.maxTrueTrackDegrees, 270);
   assert.equal(config.notifications.targets.length, 2);
+  assert.deepEqual(config.aircraftFilter.allowedCategories, [3, 4, 5, 6, 7]);
   assert.deepEqual(config.home, { lat: 50.1, lon: 19.2, elevationMeters: 0 });
 });
 
@@ -42,7 +43,18 @@ test('true-track bounds must be ordered', () => {
 
 test('minimum airport distance must be inside the OpenSky search radius', () => {
   assert.throws(
-    () => loadConfig({ ...validEnvironment(), MIN_AIRPORT_DISTANCE_KM: '90' }),
+    () => loadConfig({ ...validEnvironment(), MIN_AIRPORT_DISTANCE_KM: '50' }),
     /must be smaller/,
+  );
+});
+
+test('aircraft filter validates ADS-B categories and ICAO24 addresses', () => {
+  assert.throws(
+    () => loadConfig({ ...validEnvironment(), AIRCRAFT_ADSB_CATEGORY_ALLOWLIST: '3,21' }),
+    /between 0 and 20/,
+  );
+  assert.throws(
+    () => loadConfig({ ...validEnvironment(), AIRCRAFT_ICAO24_ALLOWLIST: 'not-hex' }),
+    /6-digit hexadecimal/,
   );
 });

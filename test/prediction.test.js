@@ -11,9 +11,9 @@ const airport = {
 const home = { ...fromLocalMeters({ x: -12_000, y: 0 }, airport.reference), elevationMeters: 250 };
 const nowSeconds = 1_800;
 const baseConfig = {
-  maxCandidateAltitudeFeet: 7000,
+  maxCandidateAltitudeFeet: 5000,
   minAirportDistanceKilometers: 8,
-  maxAirportDistanceKilometers: 90,
+  maxAirportDistanceKilometers: 50,
   minTrueTrackDegrees: 180,
   maxTrueTrackDegrees: 270,
   minDescentRateMetersPerSecond: 0.5,
@@ -22,7 +22,7 @@ const baseConfig = {
 function sample({
   timestamp = nowSeconds,
   airportDistanceMeters = 20_000,
-  altitudeMeters = 2_000,
+  altitudeMeters = 1_400,
   verticalRateMetersPerSecond = -3,
   trackDegrees = 225,
 } = {}) {
@@ -47,15 +47,15 @@ function evaluate(samples, overrides = {}) {
   });
 }
 
-test('descending aircraft below 7000 ft and 8-90 km from airport alerts', () => {
+test('descending aircraft below 5000 ft and 8-50 km from airport alerts', () => {
   const result = evaluate([sample()]);
   assert.equal(result.shouldAlert, true, result.reasons.join(', '));
-  assert.ok(result.currentAltitudeFeet < 7000);
+  assert.ok(result.currentAltitudeFeet < 5000);
   assert.ok(result.airportDistanceMeters > 8_000);
 });
 
-test('aircraft at or above 7000 ft does not alert', () => {
-  const result = evaluate([sample({ altitudeMeters: 2_134 })]);
+test('aircraft at or above 5000 ft does not alert', () => {
+  const result = evaluate([sample({ altitudeMeters: 1_525 })]);
   assert.equal(result.shouldAlert, false);
   assert.ok(result.reasons.includes('altitude_too_high'));
 });
@@ -72,8 +72,8 @@ test('aircraft within 8 km of airport does not alert', () => {
   assert.ok(result.reasons.includes('too_close_to_airport'));
 });
 
-test('aircraft beyond the configured 90 km radius does not alert', () => {
-  const result = evaluate([sample({ airportDistanceMeters: 91_000 })]);
+test('aircraft beyond the configured 50 km radius does not alert', () => {
+  const result = evaluate([sample({ airportDistanceMeters: 51_000 })]);
   assert.equal(result.shouldAlert, false);
   assert.ok(result.reasons.includes('outside_search_radius'));
 });
@@ -102,8 +102,8 @@ test('missing true track does not alert', () => {
 
 test('altitude history confirms descent when ADS-B vertical rate is absent', () => {
   const samples = [
-    sample({ timestamp: nowSeconds - 30, airportDistanceMeters: 23_000, altitudeMeters: 2_050, verticalRateMetersPerSecond: null }),
-    sample({ timestamp: nowSeconds, airportDistanceMeters: 20_000, altitudeMeters: 2_000, verticalRateMetersPerSecond: null }),
+    sample({ timestamp: nowSeconds - 30, airportDistanceMeters: 23_000, altitudeMeters: 1_450, verticalRateMetersPerSecond: null }),
+    sample({ timestamp: nowSeconds, airportDistanceMeters: 20_000, altitudeMeters: 1_400, verticalRateMetersPerSecond: null }),
   ];
   const result = evaluate(samples);
   assert.equal(result.shouldAlert, true, result.reasons.join(', '));

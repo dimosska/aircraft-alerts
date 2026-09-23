@@ -28,6 +28,7 @@ function normalizeState(state) {
     trackDegrees: state[10],
     verticalRateMetersPerSecond: state[11],
     positionSource: state[16],
+    category: Number.isInteger(state[17]) ? state[17] : null,
   };
 }
 

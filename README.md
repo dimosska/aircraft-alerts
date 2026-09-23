@@ -2,7 +2,7 @@
 
 Production-oriented MVP that detects low, descending aircraft near Kraków Airport and sends one ntfy notification per iPhone.
 
-The system does not use flight schedules. It alerts when a fresh OpenSky position is within 90 km of EPKK but more than 8 km from the airport, below 7,000 ft, descending, and has a true track strictly between 180° and 270°. Redis suppresses subsequent notifications for the same aircraft approach.
+The system does not use flight schedules. It alerts when a fresh OpenSky position is within 50 km of EPKK but more than 8 km from the airport, below 5,000 ft, descending, and has a true track strictly between 180° and 270°. Light general-aviation traffic is excluded using the ADS-B emitter category, while business jets, airliners, heavy aircraft and high-performance aircraft remain eligible. Redis suppresses subsequent notifications for the same aircraft approach.
 
 ## Architecture
 
@@ -73,12 +73,16 @@ The push command never prints topic names. Use `iphone1` or `iphone2` instead of
 
 Important filtering variables:
 
-- `OPENSKY_SEARCH_RADIUS_KM=90`
-- `MAX_CANDIDATE_ALTITUDE_FEET=7000`
+- `OPENSKY_SEARCH_RADIUS_KM=50`
+- `MAX_CANDIDATE_ALTITUDE_FEET=5000`
 - `MIN_AIRPORT_DISTANCE_KM=8`
 - `MIN_DESCENT_RATE_MPS=0.5`
 - `MIN_TRUE_TRACK_DEGREES=180`
 - `MAX_TRUE_TRACK_DEGREES=270`
+- `AIRCRAFT_ADSB_CATEGORY_ALLOWLIST=3,4,5,6,7`
+- `AIRCRAFT_ICAO24_ALLOWLIST=` (optional exact overrides)
+
+OpenSky category `2` means `Light` (below 15,500 lb) and is excluded by default. Categories `3` through `7` cover aircraft from `Small` (15,500–75,000 lb) through high-performance aircraft. Because the state-vector API does not identify ownership or mission, this weight/emitter-category gate is intentionally used instead of guessing from a callsign. An aircraft with missing category data is rejected unless its ICAO24 address is explicitly allowlisted.
 
 The EPKK runway headings and thresholds in `src/airports/epkk.js` come from AIP Poland EPKK AD 2.12. Home coordinates are never stored in this file.
 

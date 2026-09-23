@@ -12,6 +12,21 @@ function booleanValue(environment, name, defaultValue) {
   return raw === 'true';
 }
 
+function listValue(environment, name, defaultValue = '') {
+  return String(environment[name] ?? defaultValue)
+    .split(',')
+    .map((value) => value.trim())
+    .filter(Boolean);
+}
+
+function integerListValue(environment, name, defaultValue = '') {
+  return listValue(environment, name, defaultValue).map((raw) => {
+    const value = Number(raw);
+    if (!Number.isInteger(value)) throw new Error(`${name} must contain comma-separated integers`);
+    return value;
+  });
+}
+
 function secretValue(environment, name) {
   const value = environment[name]?.trim();
   if (!value || value.startsWith('CHANGE_ME')) throw new Error(`${name} must be configured`);
@@ -35,7 +50,7 @@ export function loadConfig(environment = process.env) {
   if (ntfyBaseUrl.protocol !== 'https:') throw new Error('NTFY_BASE_URL must use HTTPS');
   const adsbSource = environment.ADSB_SOURCE ?? 'opensky';
   if (adsbSource !== 'opensky') throw new Error('This build currently supports ADSB_SOURCE=opensky');
-  const openskySearchRadiusKm = numberValue(environment, 'OPENSKY_SEARCH_RADIUS_KM', 90, {
+  const openskySearchRadiusKm = numberValue(environment, 'OPENSKY_SEARCH_RADIUS_KM', 50, {
     minimum: 10,
     maximum: 200,
   });
@@ -55,6 +70,19 @@ export function loadConfig(environment = process.env) {
   });
   if (minTrueTrackDegrees >= maxTrueTrackDegrees) {
     throw new Error('MIN_TRUE_TRACK_DEGREES must be smaller than MAX_TRUE_TRACK_DEGREES');
+  }
+  const allowedIcao24 = listValue(environment, 'AIRCRAFT_ICAO24_ALLOWLIST')
+    .map((value) => value.toLowerCase());
+  if (allowedIcao24.some((value) => !/^[0-9a-f]{6}$/.test(value))) {
+    throw new Error('AIRCRAFT_ICAO24_ALLOWLIST must contain comma-separated 6-digit hexadecimal addresses');
+  }
+  const allowedCategories = integerListValue(
+    environment,
+    'AIRCRAFT_ADSB_CATEGORY_ALLOWLIST',
+    '3,4,5,6,7',
+  );
+  if (allowedCategories.some((value) => value < 0 || value > 20)) {
+    throw new Error('AIRCRAFT_ADSB_CATEGORY_ALLOWLIST values must be between 0 and 20');
   }
 
   return {
@@ -82,7 +110,7 @@ export function loadConfig(environment = process.env) {
       timeoutMilliseconds: 12_000,
     },
     prediction: {
-      maxCandidateAltitudeFeet: numberValue(environment, 'MAX_CANDIDATE_ALTITUDE_FEET', 7000, {
+      maxCandidateAltitudeFeet: numberValue(environment, 'MAX_CANDIDATE_ALTITUDE_FEET', 5000, {
         minimum: 500,
       }),
       minAirportDistanceKilometers: minAirportDistanceKm,
@@ -92,6 +120,10 @@ export function loadConfig(environment = process.env) {
       minDescentRateMetersPerSecond: numberValue(environment, 'MIN_DESCENT_RATE_MPS', 0.5, {
         minimum: 0,
       }),
+    },
+    aircraftFilter: {
+      allowedIcao24,
+      allowedCategories,
     },
     trackHistorySeconds: numberValue(environment, 'TRACK_HISTORY_SECONDS', 240, { minimum: 90 }),
     trackStateTtlSeconds: numberValue(environment, 'TRACK_STATE_TTL_SECONDS', 900, { minimum: 300 }),
