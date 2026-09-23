@@ -109,6 +109,18 @@ export function loadConfig(environment = process.env) {
         35,
         { minimum: 5, maximum: 90 },
       ),
+      finalTurnExitBeforeHomeMeters: numberValue(
+        environment,
+        'FINAL_TURN_EXIT_BEFORE_HOME_METERS',
+        2000,
+        { minimum: 250, maximum: 10000 },
+      ),
+      finalTurnCaptureRadiusMeters: numberValue(
+        environment,
+        'FINAL_TURN_CAPTURE_RADIUS_METERS',
+        4000,
+        { minimum: 500, maximum: 20000 },
+      ),
     },
     trackHistorySeconds: numberValue(environment, 'TRACK_HISTORY_SECONDS', 240, { minimum: 90 }),
     trackStateTtlSeconds: numberValue(environment, 'TRACK_STATE_TTL_SECONDS', 900, { minimum: 300 }),

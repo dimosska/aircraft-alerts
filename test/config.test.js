@@ -24,6 +24,8 @@ test('configuration accepts OpenSky production defaults', () => {
   const config = loadConfig(validEnvironment());
   assert.equal(config.adsbSource, 'opensky');
   assert.equal(config.pollIntervalSeconds, 30);
+  assert.equal(config.prediction.finalTurnExitBeforeHomeMeters, 2000);
+  assert.equal(config.prediction.finalTurnCaptureRadiusMeters, 4000);
   assert.equal(config.notifications.targets.length, 2);
   assert.deepEqual(config.home, { lat: 50.1, lon: 19.2, elevationMeters: 0 });
 });

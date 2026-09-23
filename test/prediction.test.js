@@ -104,13 +104,25 @@ test('nearby aircraft flying away from the home does not alert', () => {
 test('aircraft converging on airport but missing the home does not alert', () => {
   const result = evaluate(inboundSamples({ lateralMeters: 5_000 }));
   assert.equal(result.shouldAlert, false);
-  assert.ok(result.reasons.includes('misses_home'));
+  assert.ok(result.reasons.includes('outside_approach_corridor'));
 });
 
 test('unstable course waits for confirmation', () => {
   const result = evaluate(inboundSamples({ tracks: [55, 125, 90] }));
   assert.equal(result.shouldAlert, false);
   assert.ok(result.reasons.includes('unstable_course'));
+});
+
+test('coherent final turn can alert before the aircraft rolls out over the home', () => {
+  const samples = [
+    sampleAt({ timestamp: nowSeconds - 100, x: -31_500, y: 9_000, trackDegrees: 60 }),
+    sampleAt({ timestamp: nowSeconds - 70, x: -29_205, y: 7_603, trackDegrees: 90 }),
+    sampleAt({ timestamp: nowSeconds - 40, x: -26_522, y: 6_261, trackDegrees: 116.565 }),
+  ];
+  const result = evaluate(samples);
+  assert.equal(result.shouldAlert, true, result.reasons.join(', '));
+  assert.ok(Math.abs(result.etaSeconds - 120) < 1);
+  assert.equal(result.runway, '09');
 });
 
 test('already alerted approach never sends a duplicate', () => {

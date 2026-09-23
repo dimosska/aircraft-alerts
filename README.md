@@ -2,11 +2,11 @@
 
 Production-oriented MVP that predicts whether an aircraft on approach to Kraków Airport will pass near a private home and sends one ntfy notification per iPhone roughly two minutes before closest approach.
 
-The system is trajectory-first. It does not use flight schedules and does not treat “eight minutes before landing” as a trigger. It keeps multiple ADS-B measurements, estimates motion in local metre coordinates, calculates closest point of approach (CPA), checks descent/runway/corridor compatibility, and fails closed when the prediction is unstable.
+The system is trajectory-first. It does not use flight schedules and does not treat “eight minutes before landing” as a trigger. It keeps multiple ADS-B measurements, detects a coherent final turn toward the runway centreline, switches to closest point of approach (CPA) after rollout, checks sustained descent and EPKK convergence, and fails closed when the motion is erratic.
 
 ## Architecture
 
-- n8n `2.40.5`: private scheduler, bound to `127.0.0.1` only.
+- n8n `2.40.5`: scheduler published on the configurable `N8N_PORT`; restrict it with the server firewall or a private network.
 - Predictor service: OpenSky OAuth2 client, trajectory model, confidence scoring and ntfy publishing.
 - Redis `8.10.2`: expiring track history and atomic per-phone alert deduplication.
 - OpenSky `/states/all`: initial ADS-B source, queried every 30 seconds inside a bounded EPKK area.
@@ -51,13 +51,13 @@ Import `n8n/workflows/aircraft-overflight-alert.json` from the n8n UI, or run:
 docker compose exec n8n n8n import:workflow --input=/workflows/aircraft-overflight-alert.json
 ```
 
-n8n is not exposed publicly. From another computer, use an SSH tunnel:
+n8n listens on the server's configured port. Allow that port only from a trusted IP or private network, then open:
 
-```bash
-ssh -L 5678:127.0.0.1:5678 your-user@your-server
+```text
+http://SERVER_IP:5678
 ```
 
-Open `http://127.0.0.1:5678`, finish local owner setup, inspect the imported workflow, and publish it. n8n requires a Schedule Trigger workflow to be published before scheduled executions start.
+Finish local owner setup, inspect the imported workflow, and publish it. n8n requires a Schedule Trigger workflow to be published before scheduled executions start.
 
 ## Verification
 
@@ -83,6 +83,8 @@ Important prediction variables:
 - `MAX_CPA_ETA_SPREAD_SECONDS`
 - `APPROACH_CORRIDOR_HALF_WIDTH_METERS`
 - `RUNWAY_HEADING_TOLERANCE_DEGREES`
+- `FINAL_TURN_EXIT_BEFORE_HOME_METERS=2000`
+- `FINAL_TURN_CAPTURE_RADIUS_METERS=4000`
 
 The EPKK runway headings and thresholds in `src/airports/epkk.js` come from AIP Poland EPKK AD 2.12. Home coordinates are never stored in this file.
 
@@ -90,7 +92,7 @@ The EPKK runway headings and thresholds in `src/airports/epkk.js` come from AIP 
 
 - Keep the repository private and `.env` untracked.
 - Do not publish ports 6379 or 8080.
-- Do not change the n8n binding from `127.0.0.1` without adding a reverse proxy, TLS and authentication controls.
+- Restrict the n8n port with a firewall or private network. For Internet-facing use, add a reverse proxy, TLS and appropriate authentication controls.
 - Treat ntfy.sh topic names as passwords. Anyone who learns a topic can subscribe or publish because all ntfy.sh topics are public.
 - Successful n8n execution data is disabled; the workflow itself contains no credentials, coordinates, or topics.
 
