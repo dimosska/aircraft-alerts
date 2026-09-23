@@ -12,7 +12,7 @@ The system does not use flight schedules. It alerts when a fresh OpenSky positio
 - OpenSky `/states/all`: initial ADS-B source, queried every 30 seconds inside a bounded EPKK area.
 - ntfy.sh: two independent, randomly generated topics.
 
-The n8n workflow wakes every 15 seconds. The predictor enforces `ADSB_POLL_INTERVAL_SECONDS`, which defaults to 30 seconds. This keeps a standard authenticated OpenSky account below its 4,000-credit daily limit: 2,880 one-credit requests per day. State vectors without a real `time_position` are discarded so old coordinates cannot masquerade as new measurements.
+The n8n workflow wakes every 15 seconds from 10:00:00 through 19:59:45 in the `Europe/Warsaw` timezone. The predictor enforces `ADSB_POLL_INTERVAL_SECONDS`, which defaults to 30 seconds. The restricted daily window reduces OpenSky usage further. State vectors without a real `time_position` are discarded so old coordinates cannot masquerade as new measurements.
 
 ## Server installation
 
@@ -58,6 +58,8 @@ http://SERVER_IP:5678
 ```
 
 Finish local owner setup, inspect the imported workflow, and publish it. n8n requires a Schedule Trigger workflow to be published before scheduled executions start.
+
+For an already imported workflow, edit its Schedule Trigger in the UI, select **Custom (Cron)**, enter `*/15 * 10-19 * * *`, save, and publish again. Pulling the repository does not automatically replace a workflow already stored in the n8n database.
 
 ## Verification
 

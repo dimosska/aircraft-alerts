@@ -8,7 +8,9 @@ test('n8n workflow is importable JSON and contains no external secrets', async (
   const schedule = workflow.nodes.find((node) => node.type === 'n8n-nodes-base.scheduleTrigger');
   const request = workflow.nodes.find((node) => node.type === 'n8n-nodes-base.httpRequest');
 
-  assert.equal(schedule.parameters.rule.interval[0].secondsInterval, 15);
+  assert.equal(schedule.parameters.rule.interval[0].field, 'cronExpression');
+  assert.equal(schedule.parameters.rule.interval[0].expression, '*/15 * 10-19 * * *');
+  assert.equal(workflow.settings.timezone, 'Europe/Warsaw');
   assert.equal(request.parameters.url, 'http://predictor:8080/poll');
   assert.equal(request.onError, 'continueRegularOutput');
   assert.equal(workflow.active, false);
