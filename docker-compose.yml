@@ -74,6 +74,12 @@ services:
       - no-new-privileges:true
     cap_drop:
       - ALL
+    cap_add:
+      # The official Redis entrypoint needs these only to initialize /data
+      # ownership and then drop from root to the redis user.
+      - CHOWN
+      - SETGID
+      - SETUID
 
 volumes:
   n8n_data:
