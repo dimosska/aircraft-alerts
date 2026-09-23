@@ -3,140 +3,96 @@ import { test } from 'node:test';
 import { fromLocalMeters } from '../src/geo.js';
 import { evaluateTrack } from '../src/prediction.js';
 
-const origin = { lat: 50, lon: 19 };
-const homePoint = fromLocalMeters({ x: -12_000, y: 0 }, origin);
-const home = { ...homePoint, elevationMeters: 250 };
 const airport = {
   icao: 'TEST',
-  reference: origin,
-  runways: [{ designator: '09', headingDegrees: 90, threshold: origin }],
+  reference: { lat: 50, lon: 19 },
+  runways: [{ designator: '09', headingDegrees: 90, threshold: { lat: 50, lon: 19 } }],
 };
+const home = { ...fromLocalMeters({ x: -12_000, y: 0 }, airport.reference), elevationMeters: 250 };
 const nowSeconds = 1_800;
 const baseConfig = {
-  alertLeadTimeSeconds: 120,
-  alertWindowSeconds: 30,
-  maxOverflightDistanceMeters: 1_000,
-  minPredictionConfidence: 0.68,
-  minConfirmationSamples: 3,
-  minTrackSpanSeconds: 50,
-  maxTrackStddevDegrees: 12,
-  approachCorridorHalfWidthMeters: 8_000,
-  approachCorridorLengthMeters: 100_000,
-  runwayHeadingToleranceDegrees: 35,
+  maxCandidateAltitudeFeet: 7000,
+  minAirportDistanceKilometers: 8,
+  maxAirportDistanceKilometers: 90,
+  minDescentRateMetersPerSecond: 0.5,
 };
 
-function sampleAt({ timestamp, x, y = 0, trackDegrees = 90, verticalRate = -3 }) {
-  const position = fromLocalMeters({ x, y }, origin);
+function sample({
+  timestamp = nowSeconds,
+  airportDistanceMeters = 20_000,
+  altitudeMeters = 2_000,
+  verticalRateMetersPerSecond = -3,
+} = {}) {
   return {
     timestamp,
-    ...position,
-    altitudeMeters: 2_000 + verticalRate * (timestamp - nowSeconds),
+    ...fromLocalMeters({ x: -airportDistanceMeters, y: 0 }, airport.reference),
+    altitudeMeters,
     speedMetersPerSecond: 100,
-    trackDegrees,
-    verticalRateMetersPerSecond: verticalRate,
+    trackDegrees: 90,
+    verticalRateMetersPerSecond,
   };
-}
-
-function inboundSamples({ etaSeconds = 120, lateralMeters = 0, tracks = [90, 90, 90] } = {}) {
-  const currentX = -12_000 - 100 * etaSeconds;
-  return [-60, -30, 0].map((offset, index) =>
-    sampleAt({
-      timestamp: nowSeconds + offset,
-      x: currentX + 100 * offset,
-      y: lateralMeters,
-      trackDegrees: tracks[index],
-    }),
-  );
-}
-
-function stablePredictions(etaSeconds) {
-  return [
-    { timestamp: nowSeconds - 60, etaSeconds: etaSeconds + 60, distanceMeters: 0 },
-    { timestamp: nowSeconds - 30, etaSeconds: etaSeconds + 30, distanceMeters: 0 },
-  ];
 }
 
 function evaluate(samples, overrides = {}) {
   return evaluateTrack({
     samples,
-    previousPredictions: overrides.previousPredictions ?? stablePredictions(120),
     alreadyAlerted: overrides.alreadyAlerted ?? false,
     home,
-    airport: overrides.airport ?? airport,
+    airport,
     nowSeconds,
     config: { ...baseConfig, ...overrides.config },
   });
 }
 
-test('aircraft tracking directly over home with ETA 120 seconds alerts', () => {
-  const result = evaluate(inboundSamples());
+test('descending aircraft below 7000 ft and 8-90 km from airport alerts', () => {
+  const result = evaluate([sample()]);
   assert.equal(result.shouldAlert, true, result.reasons.join(', '));
-  assert.ok(Math.abs(result.etaSeconds - 120) < 1);
-  assert.ok(result.cpaDistanceMeters < 1);
-  assert.equal(result.runway, '09');
-});
-test('ETA too far ahead does not alert', () => {
-  const result = evaluate(inboundSamples({ etaSeconds: 240 }), {
-    previousPredictions: stablePredictions(240),
-  });
-  assert.equal(result.shouldAlert, false);
-  assert.ok(result.reasons.includes('outside_alert_window'));
+  assert.ok(result.currentAltitudeFeet < 7000);
+  assert.ok(result.airportDistanceMeters > 8_000);
 });
 
-test('aircraft that passed the home does not alert', () => {
-  const samples = [-60, -30, 0].map((offset) =>
-    sampleAt({ timestamp: nowSeconds + offset, x: -8_000 + 100 * offset }),
-  );
-  const result = evaluate(samples);
+test('aircraft at or above 7000 ft does not alert', () => {
+  const result = evaluate([sample({ altitudeMeters: 2_134 })]);
   assert.equal(result.shouldAlert, false);
-  assert.ok(result.reasons.includes('cpa_in_past'));
+  assert.ok(result.reasons.includes('altitude_too_high'));
 });
 
-test('nearby aircraft flying away from the home does not alert', () => {
-  const samples = [-60, -30, 0].map((offset) =>
-    sampleAt({ timestamp: nowSeconds + offset, x: -14_000 - 100 * offset, trackDegrees: 270 }),
-  );
-  const result = evaluate(samples);
+test('level or climbing aircraft does not alert', () => {
+  const result = evaluate([sample({ verticalRateMetersPerSecond: 0 })]);
   assert.equal(result.shouldAlert, false);
-  assert.ok(result.reasons.includes('outside_approach_corridor'));
+  assert.ok(result.reasons.includes('not_descending'));
 });
 
-test('aircraft converging on airport but missing the home does not alert', () => {
-  const result = evaluate(inboundSamples({ lateralMeters: 5_000 }));
+test('aircraft within 8 km of airport does not alert', () => {
+  const result = evaluate([sample({ airportDistanceMeters: 7_999 })]);
   assert.equal(result.shouldAlert, false);
-  assert.ok(result.reasons.includes('outside_approach_corridor'));
+  assert.ok(result.reasons.includes('too_close_to_airport'));
 });
 
-test('unstable course waits for confirmation', () => {
-  const result = evaluate(inboundSamples({ tracks: [55, 125, 90] }));
+test('aircraft beyond the configured 90 km radius does not alert', () => {
+  const result = evaluate([sample({ airportDistanceMeters: 91_000 })]);
   assert.equal(result.shouldAlert, false);
-  assert.ok(result.reasons.includes('unstable_course'));
+  assert.ok(result.reasons.includes('outside_search_radius'));
 });
 
-test('coherent final turn can alert before the aircraft rolls out over the home', () => {
+test('stale position does not alert', () => {
+  const result = evaluate([sample({ timestamp: nowSeconds - 60 })]);
+  assert.equal(result.shouldAlert, false);
+  assert.ok(result.reasons.includes('stale_position'));
+});
+
+test('altitude history confirms descent when ADS-B vertical rate is absent', () => {
   const samples = [
-    sampleAt({ timestamp: nowSeconds - 100, x: -31_500, y: 9_000, trackDegrees: 60 }),
-    sampleAt({ timestamp: nowSeconds - 70, x: -29_205, y: 7_603, trackDegrees: 90 }),
-    sampleAt({ timestamp: nowSeconds - 40, x: -26_522, y: 6_261, trackDegrees: 116.565 }),
+    sample({ timestamp: nowSeconds - 30, airportDistanceMeters: 23_000, altitudeMeters: 2_050, verticalRateMetersPerSecond: null }),
+    sample({ timestamp: nowSeconds, airportDistanceMeters: 20_000, altitudeMeters: 2_000, verticalRateMetersPerSecond: null }),
   ];
   const result = evaluate(samples);
   assert.equal(result.shouldAlert, true, result.reasons.join(', '));
-  assert.ok(Math.abs(result.etaSeconds - 120) < 1);
-  assert.equal(result.runway, '09');
+  assert.ok(result.descentRateMetersPerSecond < 0);
 });
 
 test('already alerted approach never sends a duplicate', () => {
-  const result = evaluate(inboundSamples(), { alreadyAlerted: true });
+  const result = evaluate([sample()], { alreadyAlerted: true });
   assert.equal(result.shouldAlert, false);
   assert.ok(result.reasons.includes('already_alerted'));
-});
-
-test('landing direction incompatible with the track does not alert', () => {
-  const oppositeRunwayAirport = {
-    ...airport,
-    runways: [{ designator: '27', headingDegrees: 270, threshold: origin }],
-  };
-  const result = evaluate(inboundSamples(), { airport: oppositeRunwayAirport });
-  assert.equal(result.shouldAlert, false);
-  assert.ok(result.reasons.includes('outside_approach_corridor'));
 });

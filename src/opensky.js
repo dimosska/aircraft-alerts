@@ -22,7 +22,7 @@ function normalizeState(state) {
     timestamp,
     lon: state[5],
     lat: state[6],
-    altitudeMeters: Number.isFinite(state[13]) ? state[13] : state[7],
+    altitudeMeters: Number.isFinite(state[7]) ? state[7] : state[13],
     barometricAltitudeMeters: state[7],
     speedMetersPerSecond: state[9],
     trackDegrees: state[10],

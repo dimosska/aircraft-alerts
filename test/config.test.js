@@ -24,8 +24,16 @@ test('configuration accepts OpenSky production defaults', () => {
   const config = loadConfig(validEnvironment());
   assert.equal(config.adsbSource, 'opensky');
   assert.equal(config.pollIntervalSeconds, 30);
-  assert.equal(config.prediction.finalTurnExitBeforeHomeMeters, 2000);
-  assert.equal(config.prediction.finalTurnCaptureRadiusMeters, 4000);
+  assert.equal(config.prediction.maxCandidateAltitudeFeet, 7000);
+  assert.equal(config.prediction.minAirportDistanceKilometers, 8);
+  assert.equal(config.prediction.maxAirportDistanceKilometers, 90);
   assert.equal(config.notifications.targets.length, 2);
   assert.deepEqual(config.home, { lat: 50.1, lon: 19.2, elevationMeters: 0 });
+});
+
+test('minimum airport distance must be inside the OpenSky search radius', () => {
+  assert.throws(
+    () => loadConfig({ ...validEnvironment(), MIN_AIRPORT_DISTANCE_KM: '90' }),
+    /must be smaller/,
+  );
 });

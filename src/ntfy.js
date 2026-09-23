@@ -23,19 +23,24 @@ export class NtfyClient {
 }
 export function notificationForAircraft(aircraft, prediction) {
   const callsign = aircraft.callsign || aircraft.icao24.toUpperCase();
-  const eta = Math.max(0, Math.round(prediction.etaSeconds));
-  const altitude = Number.isFinite(prediction.currentAltitudeMeters)
-    ? `${Math.round(prediction.currentAltitudeMeters)} м`
+  const altitude = Number.isFinite(prediction.currentAltitudeFeet)
+    ? `${Math.round(prediction.currentAltitudeFeet)} ft`
     : 'невідомо';
-  const distance = `${(prediction.currentDistanceMeters / 1000).toFixed(1)} км`;
-  const confidence = `${Math.round(prediction.confidence * 100)}%`;
+  const airportDistance = Number.isFinite(prediction.airportDistanceMeters)
+    ? `${(prediction.airportDistanceMeters / 1000).toFixed(1)} км`
+    : 'невідомо';
+  const homeDistance = `${(prediction.currentDistanceMeters / 1000).toFixed(1)} км`;
+  const speed = Number.isFinite(aircraft.speedMetersPerSecond)
+    ? `${Math.round(aircraft.speedMetersPerSecond * 3.6)} км/год`
+    : 'невідомо';
   const direction = Number.isFinite(prediction.trackDegrees)
     ? ` · курс ${Math.round(prediction.trackDegrees).toString().padStart(3, '0')}°`
     : '';
   return {
-    title: `Літак ${callsign}`,
+    title: `Літак знижується: ${callsign}`,
     message:
-      `${callsign} пролетить над будинком приблизно через 2 хв\n` +
-      `Прогноз: ${eta} с · висота: ${altitude} · відстань: ${distance} · confidence: ${confidence}${direction}`,
+      `${callsign} знижується поблизу KRK\n` +
+      `Висота: ${altitude} · до KRK: ${airportDistance} · до будинку: ${homeDistance}\n` +
+      `Швидкість: ${speed}${direction}`,
   };
 }

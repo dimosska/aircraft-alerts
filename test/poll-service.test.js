@@ -68,16 +68,10 @@ test('polling sends one notification per phone and suppresses repeated measureme
       trackHistorySeconds: 240,
       trackStateTtlSeconds: 900,
       prediction: {
-        alertLeadTimeSeconds: 120,
-        alertWindowSeconds: 30,
-        maxOverflightDistanceMeters: 1000,
-        minPredictionConfidence: 0.68,
-        minConfirmationSamples: 3,
-        minTrackSpanSeconds: 50,
-        maxTrackStddevDegrees: 12,
-        approachCorridorHalfWidthMeters: 8000,
-        approachCorridorLengthMeters: 100000,
-        runwayHeadingToleranceDegrees: 35,
+        maxCandidateAltitudeFeet: 7000,
+        minAirportDistanceKilometers: 8,
+        maxAirportDistanceKilometers: 90,
+        minDescentRateMetersPerSecond: 0.5,
       },
       notifications: {
         targets: [
@@ -93,16 +87,14 @@ test('polling sends one notification per phone and suppresses repeated measureme
     logger: () => {},
   });
 
-  await service.poll();
-  await service.poll();
   const alertingPoll = await service.poll();
   const repeatedPoll = await service.poll();
 
   assert.equal(alertingPoll.alerts.length, 2);
   assert.equal(repeatedPoll.alerts.length, 0);
   assert.equal(published.length, 2);
-  assert.match(published[0].notification.message, /приблизно через 2 хв/);
-  assert.match(published[0].notification.message, /confidence:/);
+  assert.match(published[0].notification.message, /знижується поблизу KRK/);
+  assert.match(published[0].notification.message, /до KRK:/);
 });
 
 test('an ntfy failure is retried on the next workflow run', async () => {
@@ -121,16 +113,10 @@ test('an ntfy failure is retried on the next workflow run', async () => {
       trackHistorySeconds: 240,
       trackStateTtlSeconds: 900,
       prediction: {
-        alertLeadTimeSeconds: 120,
-        alertWindowSeconds: 30,
-        maxOverflightDistanceMeters: 1000,
-        minPredictionConfidence: 0.68,
-        minConfirmationSamples: 3,
-        minTrackSpanSeconds: 50,
-        maxTrackStddevDegrees: 12,
-        approachCorridorHalfWidthMeters: 8000,
-        approachCorridorLengthMeters: 100000,
-        runwayHeadingToleranceDegrees: 35,
+        maxCandidateAltitudeFeet: 7000,
+        minAirportDistanceKilometers: 8,
+        maxAirportDistanceKilometers: 90,
+        minDescentRateMetersPerSecond: 0.5,
       },
       notifications: { targets: [{ id: 'iphone1', topic: 'topic-1' }] },
     },
@@ -146,8 +132,6 @@ test('an ntfy failure is retried on the next workflow run', async () => {
     logger: () => {},
   });
 
-  await service.poll();
-  await service.poll();
   const failedPublish = await service.poll();
   assert.equal(failedPublish.status, 'ok');
   assert.equal(failedPublish.alerts.length, 0);

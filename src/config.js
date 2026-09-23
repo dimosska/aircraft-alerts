@@ -35,6 +35,16 @@ export function loadConfig(environment = process.env) {
   if (ntfyBaseUrl.protocol !== 'https:') throw new Error('NTFY_BASE_URL must use HTTPS');
   const adsbSource = environment.ADSB_SOURCE ?? 'opensky';
   if (adsbSource !== 'opensky') throw new Error('This build currently supports ADSB_SOURCE=opensky');
+  const openskySearchRadiusKm = numberValue(environment, 'OPENSKY_SEARCH_RADIUS_KM', 90, {
+    minimum: 10,
+    maximum: 200,
+  });
+  const minAirportDistanceKm = numberValue(environment, 'MIN_AIRPORT_DISTANCE_KM', 8, {
+    minimum: 0,
+  });
+  if (minAirportDistanceKm >= openskySearchRadiusKm) {
+    throw new Error('MIN_AIRPORT_DISTANCE_KM must be smaller than OPENSKY_SEARCH_RADIUS_KM');
+  }
 
   return {
     port: numberValue(environment, 'PORT', 8080, { minimum: 1, maximum: 65535 }),
@@ -57,70 +67,18 @@ export function loadConfig(environment = process.env) {
     opensky: {
       clientId: secretValue(environment, 'OPENSKY_CLIENT_ID'),
       clientSecret: secretValue(environment, 'OPENSKY_CLIENT_SECRET'),
-      searchRadiusKm: numberValue(environment, 'OPENSKY_SEARCH_RADIUS_KM', 90, {
-        minimum: 10,
-        maximum: 200,
-      }),
+      searchRadiusKm: openskySearchRadiusKm,
       timeoutMilliseconds: 12_000,
     },
     prediction: {
-      alertLeadTimeSeconds: numberValue(environment, 'ALERT_LEAD_TIME_SECONDS', 120, {
-        minimum: 30,
+      maxCandidateAltitudeFeet: numberValue(environment, 'MAX_CANDIDATE_ALTITUDE_FEET', 7000, {
+        minimum: 500,
       }),
-      alertWindowSeconds: numberValue(environment, 'ALERT_WINDOW_SECONDS', 30, { minimum: 5 }),
-      maxOverflightDistanceMeters: numberValue(
-        environment,
-        'MAX_OVERFLIGHT_DISTANCE_METERS',
-        1500,
-        { minimum: 100 },
-      ),
-      minPredictionConfidence: numberValue(environment, 'MIN_PREDICTION_CONFIDENCE', 0.75, {
-        minimum: 0,
-        maximum: 1,
-      }),
-      minConfirmationSamples: numberValue(environment, 'MIN_CONFIRMATION_SAMPLES', 3, {
-        minimum: 3,
-      }),
-      minTrackSpanSeconds: numberValue(environment, 'MIN_TRACK_SPAN_SECONDS', 50, { minimum: 10 }),
-      maxTrackStddevDegrees: numberValue(environment, 'MAX_TRACK_STDDEV_DEGREES', 12, {
-        minimum: 1,
-      }),
-      maxCpaEtaSpreadSeconds: numberValue(environment, 'MAX_CPA_ETA_SPREAD_SECONDS', 35, {
-        minimum: 1,
-      }),
+      minAirportDistanceKilometers: minAirportDistanceKm,
+      maxAirportDistanceKilometers: openskySearchRadiusKm,
       minDescentRateMetersPerSecond: numberValue(environment, 'MIN_DESCENT_RATE_MPS', 0.5, {
         minimum: 0,
       }),
-      approachCorridorHalfWidthMeters: numberValue(
-        environment,
-        'APPROACH_CORRIDOR_HALF_WIDTH_METERS',
-        8000,
-        { minimum: 500 },
-      ),
-      approachCorridorLengthMeters: numberValue(
-        environment,
-        'APPROACH_CORRIDOR_LENGTH_METERS',
-        100000,
-        { minimum: 10000 },
-      ),
-      runwayHeadingToleranceDegrees: numberValue(
-        environment,
-        'RUNWAY_HEADING_TOLERANCE_DEGREES',
-        35,
-        { minimum: 5, maximum: 90 },
-      ),
-      finalTurnExitBeforeHomeMeters: numberValue(
-        environment,
-        'FINAL_TURN_EXIT_BEFORE_HOME_METERS',
-        2000,
-        { minimum: 250, maximum: 10000 },
-      ),
-      finalTurnCaptureRadiusMeters: numberValue(
-        environment,
-        'FINAL_TURN_CAPTURE_RADIUS_METERS',
-        4000,
-        { minimum: 500, maximum: 20000 },
-      ),
     },
     trackHistorySeconds: numberValue(environment, 'TRACK_HISTORY_SECONDS', 240, { minimum: 90 }),
     trackStateTtlSeconds: numberValue(environment, 'TRACK_STATE_TTL_SECONDS', 900, { minimum: 300 }),

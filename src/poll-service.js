@@ -79,6 +79,9 @@ export class PollService {
           timestamp: feed.timestamp,
           etaSeconds: prediction.etaSeconds,
           cpaDistanceMeters: prediction.cpaDistanceMeters,
+          airportDistanceMeters: prediction.airportDistanceMeters,
+          currentAltitudeFeet: prediction.currentAltitudeFeet,
+          descentRateMetersPerSecond: prediction.descentRateMetersPerSecond,
           confidence: prediction.confidence,
           reasons: prediction.reasons,
           runway: prediction.runway,
@@ -94,6 +97,15 @@ export class PollService {
         try {
           await this.ntfyClient.publish(target.topic, notification);
           alerts.push({ icao24: aircraft.icao24, target: target.id, etaSeconds: prediction.etaSeconds });
+          this.logger('info', 'notification_sent', {
+            icao24: aircraft.icao24,
+            callsign: aircraft.callsign,
+            target: target.id,
+            altitudeFeet: Math.round(prediction.currentAltitudeFeet),
+            airportDistanceKilometers: Number(
+              (prediction.airportDistanceMeters / 1000).toFixed(1),
+            ),
+          });
         } catch (error) {
           await this.stateStore.releaseAlert(approachId, target.id);
           this.logger('error', 'notification_failed', {

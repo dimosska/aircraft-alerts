@@ -13,6 +13,6 @@ OpenSky is isolated behind an ADS-B adapter and the prediction core consumes nor
 
 `readsb` normally refreshes `aircraft.json` once per second and can also emit a JSON object for each new position. A local adapter should poll every 5 seconds, set `ADSB_SOURCE=readsb`, and keep the same Redis, prediction and ntfy layers. The readsb endpoint must remain on the private LAN or Docker network and must not be exposed to the public internet.
 
-Before switching production traffic, replay the same captured approach through both adapters and compare ETA, CPA distance, altitude and confidence. Local coverage must detect an aircraft early enough to accumulate at least three measurements before the 90–150 second alert window.
+Before switching production traffic, replay the same captured approach through both adapters and compare position age, barometric altitude, vertical rate and distance to EPKK. Local data may update every few seconds, but the same altitude, descent and distance gates should remain in effect.
 
 Authoritative format reference: [readsb JSON output](https://github.com/wiedehopf/readsb/blob/dev/README-json.md).

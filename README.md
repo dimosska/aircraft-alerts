@@ -1,18 +1,18 @@
 # Aircraft Alerts for EPKK
 
-Production-oriented MVP that predicts whether an aircraft on approach to Kraków Airport will pass near a private home and sends one ntfy notification per iPhone roughly two minutes before closest approach.
+Production-oriented MVP that detects low, descending aircraft near Kraków Airport and sends one ntfy notification per iPhone.
 
-The system is trajectory-first. It does not use flight schedules and does not treat “eight minutes before landing” as a trigger. It keeps multiple ADS-B measurements, detects a coherent final turn toward the runway centreline, switches to closest point of approach (CPA) after rollout, checks sustained descent and EPKK convergence, and fails closed when the motion is erratic.
+The system does not use flight schedules. It alerts when a fresh OpenSky position is within 90 km of EPKK but more than 8 km from the airport, below 7,000 ft, and descending. Redis suppresses subsequent notifications for the same aircraft approach.
 
 ## Architecture
 
 - n8n `2.40.5`: scheduler published on the configurable `N8N_PORT`; restrict it with the server firewall or a private network.
-- Predictor service: OpenSky OAuth2 client, trajectory model, confidence scoring and ntfy publishing.
+- Predictor service: OpenSky OAuth2 client, configurable candidate filtering and ntfy publishing.
 - Redis `8.10.2`: expiring track history and atomic per-phone alert deduplication.
 - OpenSky `/states/all`: initial ADS-B source, queried every 30 seconds inside a bounded EPKK area.
 - ntfy.sh: two independent, randomly generated topics.
 
-The n8n workflow wakes every 15 seconds. The predictor enforces `ADSB_POLL_INTERVAL_SECONDS`, which defaults to 30 seconds. This keeps a standard authenticated OpenSky account below its 4,000-credit daily limit: 2,880 one-credit requests per day. OpenSky can still return delayed or incomplete data, so the service deliberately skips alerts when it cannot obtain a stable prediction.
+The n8n workflow wakes every 15 seconds. The predictor enforces `ADSB_POLL_INTERVAL_SECONDS`, which defaults to 30 seconds. This keeps a standard authenticated OpenSky account below its 4,000-credit daily limit: 2,880 one-credit requests per day. State vectors without a real `time_position` are discarded so old coordinates cannot masquerade as new measurements.
 
 ## Server installation
 
@@ -71,20 +71,12 @@ The push command never prints topic names. Use `iphone1` or `iphone2` instead of
 
 ## Configuration
 
-Important prediction variables:
+Important filtering variables:
 
-- `ALERT_LEAD_TIME_SECONDS=120`
-- `ALERT_WINDOW_SECONDS=30`, interpreted as ±30 seconds around the lead time
-- `MAX_OVERFLIGHT_DISTANCE_METERS`
-- `MIN_PREDICTION_CONFIDENCE`
-- `MIN_CONFIRMATION_SAMPLES`
-- `MIN_TRACK_SPAN_SECONDS`
-- `MAX_TRACK_STDDEV_DEGREES`
-- `MAX_CPA_ETA_SPREAD_SECONDS`
-- `APPROACH_CORRIDOR_HALF_WIDTH_METERS`
-- `RUNWAY_HEADING_TOLERANCE_DEGREES`
-- `FINAL_TURN_EXIT_BEFORE_HOME_METERS=2000`
-- `FINAL_TURN_CAPTURE_RADIUS_METERS=4000`
+- `OPENSKY_SEARCH_RADIUS_KM=90`
+- `MAX_CANDIDATE_ALTITUDE_FEET=7000`
+- `MIN_AIRPORT_DISTANCE_KM=8`
+- `MIN_DESCENT_RATE_MPS=0.5`
 
 The EPKK runway headings and thresholds in `src/airports/epkk.js` come from AIP Poland EPKK AD 2.12. Home coordinates are never stored in this file.
 

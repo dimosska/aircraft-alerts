@@ -1,50 +1,30 @@
-# Trajectory prediction and readiness criteria
+# Candidate filtering and readiness criteria
 
-## Candidate gates
+## Alert rule
 
-An aircraft is considered a possible EPKK arrival only when several measurements show all of the following:
+An aircraft produces an alert when its latest trustworthy OpenSky state satisfies every condition:
 
-- fresh valid positions and sufficient history;
-- sustained descent;
-- decreasing distance to EPKK;
-- the home is close to the extended centreline of the candidate landing runway;
-- the aircraft is converging on the airport and on the configurable final-turn capture area;
-- a positive turn-aware ETA to the home;
-- a coherent stable course or a coherent one-direction final turn.
+- its distance from the EPKK reference point is at most `OPENSKY_SEARCH_RADIUS_KM` (90 km by default);
+- its distance from EPKK is greater than `MIN_AIRPORT_DISTANCE_KM` (8 km by default);
+- its barometric altitude (or geometric altitude when barometric is absent) is below `MAX_CANDIDATE_ALTITUDE_FEET` (7,000 ft by default);
+- its ADS-B vertical rate, or the altitude trend across available positions, is at most `-MIN_DESCENT_RATE_MPS`;
+- its position is no more than 45 seconds old.
 
-ADS-B does not guarantee a destination field. These gates infer EPKK intent from motion and intentionally prefer a missed alert over a false alert.
+OpenSky does not provide a trustworthy live destination or landing ETA. This intentionally broad rule follows the deployment assumption that low descending civil traffic in the configured area is approaching KRK. The notification does not claim an exact overflight time.
 
-## Turn-aware ETA and CPA calculation
+`time_position` is mandatory. `last_contact` is never substituted for it because non-position Mode S messages can update `last_contact` while coordinates remain stale.
 
-Latitude/longitude samples are converted to local east/north metres relative to the home. Before final rollout, the model projects the current ADS-B ground-speed/track vector toward a virtual rollout point on the runway centreline. The default point is 2 km before the home, and the capture radius is configurable. ETA is the time to that point plus the short centreline segment to the home.
+## Deduplication
 
-Once the aircraft has rolled out, ordinary closest point of approach is used. For relative position `r` and velocity `v`:
-
-```text
-tCPA = -(r · v) / |v|²
-dCPA = |r + v × tCPA|
-```
-
-The age of the OpenSky position is subtracted from ETA so a delayed state vector does not produce a late notification. Altitude is extrapolated with the recent vertical trend. The model reports both predicted altitude MSL and approximate altitude above the configured home elevation.
-
-The full history remains available for descent and airport-convergence checks, but old headings and CPA estimates from before the final turn do not poison the current forecast. A monotonic turn is accepted; a reversing or erratic sequence is rejected as `unstable_course`.
-
-## Confidence
-
-The score combines sample quality, freshness, descent, airport convergence, final-turn capture compatibility, course coherence and predicted overflight distance. Hard failures such as no descent, movement away from EPKK, a past overflight or an erratic course cannot be compensated by other score components.
-
-## Approach and deduplication
-
-Redis keeps a time-limited approach session for each ICAO24. Once a notification target is claimed, `SET NX EX` atomically prevents a second message for that phone during that approach. If publishing fails, the claim is released so the same phone may be retried while the ETA remains inside the alert window. A long loss of tracking expires the session and allows a later approach.
+Redis keeps a time-limited approach session for each ICAO24. Once a notification target is claimed, `SET NX EX` atomically prevents another message for that phone during the same approach. If publishing fails, the claim is released so the following workflow run can retry. A long loss of tracking expires the session and permits an alert for a later approach.
 
 ## Readiness criteria
 
 - All automated tests pass.
 - Compose parses successfully.
-- The workflow imports into pinned n8n and is explicitly published.
-- Both phone-specific smoke tests arrive on the correct phone only.
-- No real coordinate, topic, OAuth credential or token appears in `git grep` or staged diff.
-- At least several real EPKK approaches are observed in logs before relying on alerts; tune thresholds using outcomes, without logging home coordinates.
-- OpenSky outages or low-frequency data result in no notification rather than an unstable prediction.
+- The n8n workflow is published.
+- Both phone-specific smoke tests arrive on the correct phone.
+- No real coordinates, topic, OAuth credential or token appears in Git.
+- Several real approaches are observed before relying on the system operationally.
 
-The automated suite covers exact 120-second CPA, coherent final turns, too-early CPA, already-passed aircraft, aircraft moving away, airport-bound aircraft missing the home, erratic course, deduplication, and incompatible landing direction.
+The automated suite covers the altitude boundary, descent, inner 8 km exclusion, outer 90 km boundary, stale positions, altitude-trend fallback, per-phone deduplication and retry after an ntfy failure.

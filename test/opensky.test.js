@@ -43,7 +43,7 @@ test('OpenSky client uses OAuth2, normalizes states, and rejects coordinates wit
     timestamp: 999,
     lon: 19.5,
     lat: 50.2,
-    altitudeMeters: 1600,
+    altitudeMeters: 1500,
     barometricAltitudeMeters: 1500,
     speedMetersPerSecond: 90,
     trackDegrees: 78,
