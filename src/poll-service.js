@@ -13,6 +13,34 @@ function appendSample(existing, aircraft, nowSeconds, historySeconds) {
 function approachIdentifier(aircraft, existing, samples) {
   return existing?.approachId ?? `${aircraft.icao24}-${Math.floor(samples[0].timestamp)}`;
 }
+function rounded(value, fractionDigits = 0) {
+  return Number.isFinite(value) ? Number(value.toFixed(fractionDigits)) : null;
+}
+function aircraftEvaluationFields(aircraft, prediction, classification, feedTimestamp, sampleCount) {
+  return {
+    callsign: aircraft.callsign,
+    icao24: aircraft.icao24,
+    category: aircraft.category,
+    positionTimestamp: aircraft.timestamp,
+    positionAgeSeconds: rounded(Math.max(0, feedTimestamp - aircraft.timestamp), 1),
+    positionSource: aircraft.positionSource,
+    sampleCount,
+    altitudeMeters: rounded(prediction.currentAltitudeMeters),
+    altitudeFeet: rounded(prediction.currentAltitudeFeet),
+    speedMetersPerSecond: rounded(aircraft.speedMetersPerSecond, 1),
+    speedKilometersPerHour: Number.isFinite(aircraft.speedMetersPerSecond)
+      ? rounded(aircraft.speedMetersPerSecond * 3.6)
+      : null,
+    trueTrackDegrees: rounded(prediction.trackDegrees, 1),
+    reportedVerticalRateMetersPerSecond: rounded(aircraft.verticalRateMetersPerSecond, 2),
+    evaluatedDescentRateMetersPerSecond: rounded(prediction.descentRateMetersPerSecond, 2),
+    airportDistanceKilometers: rounded(prediction.airportDistanceMeters / 1000, 1),
+    homeDistanceKilometers: rounded(prediction.currentDistanceMeters / 1000, 1),
+    classificationMatchedBy: classification.matchedBy,
+    decision: prediction.shouldAlert ? 'accepted' : 'rejected',
+    rejectionReasons: prediction.reasons,
+  };
+}
 
 export class PollService {
   constructor(options) {
@@ -92,12 +120,31 @@ export class PollService {
         },
       };
       updatedTracks.push({ icao24: aircraft.icao24, state });
+      this.logger(
+        'info',
+        'aircraft_evaluated',
+        aircraftEvaluationFields(
+          aircraft,
+          prediction,
+          classification,
+          feed.timestamp,
+          samples.length,
+        ),
+      );
       if (!prediction.shouldAlert) continue;
 
       const notification = notificationForAircraft(aircraft, prediction);
       for (const target of this.config.notifications.targets) {
         const claimed = await this.stateStore.claimAlert(approachId, target.id, 7200);
-        if (!claimed) continue;
+        if (!claimed) {
+          this.logger('info', 'notification_suppressed', {
+            icao24: aircraft.icao24,
+            callsign: aircraft.callsign,
+            target: target.id,
+            reason: 'duplicate_approach',
+          });
+          continue;
+        }
         try {
           await this.ntfyClient.publish(target.topic, notification);
           alerts.push({ icao24: aircraft.icao24, target: target.id, etaSeconds: prediction.etaSeconds });

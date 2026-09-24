@@ -60,6 +60,7 @@ test('polling sends one notification per phone and suppresses repeated measureme
     rateLimitRemaining: '3999',
   }));
   const published = [];
+  const logs = [];
   const stateStore = new MemoryStateStore();
   const service = new PollService({
     config: {
@@ -90,7 +91,7 @@ test('polling sends one notification per phone and suppresses repeated measureme
     adsbClient: { states: async () => feeds.shift() },
     stateStore,
     ntfyClient: { publish: async (topic, notification) => published.push({ topic, notification }) },
-    logger: () => {},
+    logger: (level, event, fields) => logs.push({ level, event, ...fields }),
   });
 
   const alertingPoll = await service.poll();
@@ -101,6 +102,16 @@ test('polling sends one notification per phone and suppresses repeated measureme
   assert.equal(published.length, 2);
   assert.match(published[0].notification.message, /знижується поблизу KRK/);
   assert.match(published[0].notification.message, /до KRK:/);
+  const accepted = logs.find((entry) => entry.event === 'aircraft_evaluated');
+  assert.equal(accepted.decision, 'accepted');
+  assert.equal(accepted.callsign, 'NJE123');
+  assert.equal(accepted.altitudeFeet, 4593);
+  assert.equal(accepted.trueTrackDegrees, 225);
+  assert.deepEqual(accepted.rejectionReasons, []);
+  assert.equal(
+    logs.filter((entry) => entry.event === 'notification_suppressed').length,
+    2,
+  );
 });
 
 test('an ntfy failure is retried on the next workflow run', async () => {
@@ -156,6 +167,7 @@ test('an ntfy failure is retried on the next workflow run', async () => {
 test('light general-aviation category is stored but does not notify', async () => {
   const lightAircraft = { ...aircraftAt(1800, 120), callsign: 'SPABC', category: 2 };
   const published = [];
+  const logs = [];
   const stateStore = new MemoryStateStore();
   const service = new PollService({
     config: {
@@ -183,7 +195,7 @@ test('light general-aviation category is stored but does not notify', async () =
     },
     stateStore,
     ntfyClient: { publish: async (...args) => published.push(args) },
-    logger: () => {},
+    logger: (level, event, fields) => logs.push({ level, event, ...fields }),
   });
 
   const result = await service.poll();
@@ -191,6 +203,11 @@ test('light general-aviation category is stored but does not notify', async () =
   assert.equal(result.alerts.length, 0);
   assert.equal(published.length, 0);
   assert.ok(stateStore.tracks.get('abc123').lastEvaluation.reasons.includes('aircraft_not_selected'));
+  const rejected = logs.find((entry) => entry.event === 'aircraft_evaluated');
+  assert.equal(rejected.decision, 'rejected');
+  assert.equal(rejected.category, 2);
+  assert.equal(rejected.classificationMatchedBy, null);
+  assert.ok(rejected.rejectionReasons.includes('aircraft_not_selected'));
 });
 
 test('an OpenSky failure does not prevent the next poll', async () => {

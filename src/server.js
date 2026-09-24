@@ -42,7 +42,12 @@ if (process.argv[1] === new URL(import.meta.url).pathname) {
     const stateStore = new RedisStateStore(redisClient);
     const logger = (level, event, fields = {}) => {
       const method = level === 'error' ? 'error' : 'log';
-      console[method](JSON.stringify({ level, event, ...fields }));
+      console[method](JSON.stringify({
+        timestamp: new Date().toISOString(),
+        level,
+        event,
+        ...fields,
+      }));
     };
     const service = new PollService({
       config,

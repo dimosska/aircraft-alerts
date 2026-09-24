@@ -24,6 +24,11 @@ services:
       - no-new-privileges:true
     cap_drop:
       - ALL
+    logging:
+      driver: json-file
+      options:
+        max-size: "20m"
+        max-file: "5"
 
   n8n:
     image: docker.n8n.io/n8nio/n8n:2.40.5

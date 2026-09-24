@@ -45,6 +45,15 @@ docker compose ps
 docker compose logs --tail=100 predictor
 ```
 
+The predictor writes one structured JSON `aircraft_evaluated` log per aircraft and poll. It includes callsign, ICAO24, ADS-B category, position age, sample count, altitude, speed, true track, vertical/descent rate, distance to KRK and home, classification match, the `accepted`/`rejected` decision, and all rejection reasons. It never logs home coordinates, credentials, tokens, or ntfy topics. Follow decisions live with:
+
+```bash
+docker compose logs -f predictor
+```
+
+An eligible aircraft that has already notified a phone produces a separate `notification_suppressed` event with `reason=duplicate_approach`.
+Predictor container logs use Docker's `json-file` driver with five 20 MB rotated files (about 100 MB maximum).
+
 Import `n8n/workflows/aircraft-overflight-alert.json` from the n8n UI, or run:
 
 ```bash
