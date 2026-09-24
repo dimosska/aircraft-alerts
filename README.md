@@ -1,6 +1,8 @@
-# Aircraft Alerts for EPKK
+# Aircraft Alerts and Local Weather
 
 Production-oriented MVP that detects low, descending aircraft near Kraków Airport and sends one ntfy notification per iPhone.
+
+The same private Docker stack also provides a Grafana dashboard backed by real one-minute observations from the nearby eDWIN Węgrzce weather station. The weather collector uses a public station ID and never sends the home coordinates to the weather API.
 
 The system does not use flight schedules. It alerts when a fresh OpenSky position is within 50 km of EPKK but more than 8 km from the airport, below 5,000 ft, descending, and has a true track strictly between 180° and 270°. Light general-aviation traffic is excluded using the ADS-B emitter category, while business jets, airliners, heavy aircraft and high-performance aircraft remain eligible. Redis suppresses subsequent notifications for the same aircraft approach.
 
@@ -11,6 +13,8 @@ The system does not use flight schedules. It alerts when a fresh OpenSky positio
 - Redis `8.10.2`: expiring track history and atomic per-phone alert deduplication.
 - OpenSky `/states/all`: initial ADS-B source, queried every 30 seconds inside a bounded EPKK area.
 - ntfy.sh: two independent, randomly generated topics.
+- Weather collector: public eDWIN station `PME193`, polled once per minute without credentials.
+- Prometheus: private time-series storage for the local weather dashboard.
 
 The n8n workflow wakes every 15 seconds from 10:00:00 through 19:59:45 in the `Europe/Warsaw` timezone. The predictor enforces `ADSB_POLL_INTERVAL_SECONDS`, which defaults to 30 seconds. The restricted daily window reduces OpenSky usage further. State vectors without a real `time_position` are discarded so old coordinates cannot masquerade as new measurements.
 
@@ -39,7 +43,7 @@ Validate and start:
 
 ```bash
 docker compose config -q
-docker compose build predictor
+docker compose build predictor weather
 docker compose up -d
 docker compose ps
 docker compose logs --tail=100 predictor
@@ -113,13 +117,14 @@ The EPKK runway headings and thresholds in `src/airports/epkk.js` come from AIP 
 - [Prediction model and readiness criteria](docs/prediction.md)
 - [Migration to local readsb/dump1090](docs/local-adsb.md)
 - [Local Loki, Alloy, and Grafana log processing](docs/observability.md)
+- [Local weather collector, Prometheus, and Grafana dashboard](docs/weather.md)
 
 ## Stop and update
 
 ```bash
 docker compose down
 git pull --ff-only
-docker compose build predictor
+docker compose build predictor weather
 docker compose up -d
 ```
 

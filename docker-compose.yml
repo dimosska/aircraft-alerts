@@ -1,6 +1,35 @@
 name: aircraft-alerts
 
 services:
+  weather:
+    build:
+      context: .
+      target: production
+    restart: unless-stopped
+    command:
+      - node
+      - src/weather-server.js
+    environment:
+      WEATHER_STATION_ID: ${WEATHER_STATION_ID:-PME193}
+      WEATHER_STATION_NAME: ${WEATHER_STATION_NAME:-Węgrzce}
+      WEATHER_API_BASE_URL: ${WEATHER_API_BASE_URL:-https://edwin-meteo.apps.paas.psnc.pl}
+      WEATHER_POLL_INTERVAL_SECONDS: ${WEATHER_POLL_INTERVAL_SECONDS:-60}
+      WEATHER_STALE_AFTER_SECONDS: ${WEATHER_STALE_AFTER_SECONDS:-600}
+    expose:
+      - "8080"
+    read_only: true
+    tmpfs:
+      - /tmp:size=16m,mode=1777
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
+
   predictor:
     build:
       context: .

@@ -2,13 +2,14 @@
 
 ## Why Loki
 
-This single-server deployment uses Grafana Loki instead of Logstash/Elasticsearch. Loki indexes a small set of bounded labels and keeps the complete structured JSON as the log body. Grafana Alloy discovers only the `predictor` container, parses `level`, `event`, and `decision` as labels, and sends the stream to Loki. Callsign, ICAO24, altitude, distances, and rejection reasons remain query-time JSON fields to avoid high-cardinality indexes.
+This single-server deployment uses Grafana Loki instead of Logstash/Elasticsearch. Loki indexes a small set of bounded labels and keeps the complete structured JSON as the log body. Grafana Alloy discovers only the `predictor` container, parses `level`, `event`, and `decision` as labels, and sends the stream to Loki. Callsign, ICAO24, altitude, distances, and rejection reasons remain query-time JSON fields to avoid high-cardinality indexes. Prometheus separately stores numeric measurements from the local weather collector; see [weather.md](weather.md).
 
 The stack is intentionally separate from the main Compose file:
 
 - Loki `3.7.0`, monolithic mode, TSDB schema v13, filesystem storage, 14-day retention;
 - Grafana Alloy `1.19.2` for Docker discovery and collection;
 - Grafana `13.2.2` (free default image), pre-provisioned Loki source and dashboard;
+- Prometheus `3.13.3` LTS, available only inside the Compose network, for weather time series;
 - Grafana bound to the configurable LAN-facing address; Loki and Alloy have no host ports.
 
 Alloy discovers the stable Compose service name `predictor`; it does not depend on the Compose project name, which may be overridden on a server.
@@ -37,7 +38,7 @@ docker compose -f docker-compose.yml -f observability/docker-compose.yml ps
 docker compose -f docker-compose.yml -f observability/docker-compose.yml logs --tail=100 loki alloy grafana
 ```
 
-The first start downloads approximately three additional images. Existing predictor, n8n, and Redis data is preserved.
+The first start downloads approximately four additional images. Existing predictor, n8n, and Redis data is preserved.
 
 ## Open Grafana on the local network
 

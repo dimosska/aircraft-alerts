@@ -1,4 +1,28 @@
 services:
+  prometheus:
+    image: prom/prometheus:v3.13.3
+    restart: unless-stopped
+    command:
+      - --config.file=/etc/prometheus/prometheus.yml
+      - --storage.tsdb.path=/prometheus
+      - --storage.tsdb.retention.time=365d
+      - --storage.tsdb.retention.size=1GB
+    volumes:
+      - ./observability/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - prometheus_data:/prometheus
+    expose:
+      - "9090"
+    depends_on:
+      weather:
+        condition: service_healthy
+    read_only: true
+    tmpfs:
+      - /tmp:size=32m,mode=1777
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+
   loki:
     image: grafana/loki:3.7.0
     restart: unless-stopped
@@ -33,6 +57,7 @@ services:
       - alloy_data:/var/lib/alloy/data
     depends_on:
       - loki
+      - prometheus
     read_only: true
     tmpfs:
       - /tmp:size=32m,mode=1777
@@ -72,6 +97,7 @@ services:
       - ALL
 
 volumes:
+  prometheus_data:
   loki_data:
   alloy_data:
   grafana_data:
