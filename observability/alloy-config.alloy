@@ -1,0 +1,77 @@
+discovery.docker "local" {
+  host             = "unix:///var/run/docker.sock"
+  refresh_interval = "10s"
+}
+
+discovery.relabel "predictor" {
+  targets = discovery.docker.local.targets
+
+  rule {
+    source_labels = ["__meta_docker_container_label_com_docker_compose_project"]
+    regex         = "aircraft-alerts"
+    action        = "keep"
+  }
+
+  rule {
+    source_labels = ["__meta_docker_container_label_com_docker_compose_service"]
+    regex         = "predictor"
+    action        = "keep"
+  }
+
+  rule {
+    source_labels = ["__meta_docker_container_label_com_docker_compose_project"]
+    target_label  = "compose_project"
+  }
+
+  rule {
+    source_labels = ["__meta_docker_container_label_com_docker_compose_service"]
+    target_label  = "compose_service"
+  }
+
+  rule {
+    source_labels = ["__meta_docker_container_name"]
+    regex         = "/(.*)"
+    replacement   = "$1"
+    target_label  = "container"
+  }
+}
+
+loki.source.docker "predictor" {
+  host             = "unix:///var/run/docker.sock"
+  targets          = discovery.relabel.predictor.output
+  refresh_interval = "10s"
+  labels           = { job = "aircraft-alerts" }
+  forward_to       = [loki.process.predictor.receiver]
+}
+
+loki.process "predictor" {
+  forward_to = [loki.write.local.receiver]
+
+  stage.json {
+    expressions = {
+      level    = "level",
+      event    = "event",
+      decision = "decision",
+    }
+  }
+
+  // Only bounded-cardinality fields become Loki labels. Callsign, ICAO24,
+  // distances, altitude, and reasons stay inside the JSON log line.
+  stage.labels {
+    values = {
+      level    = "",
+      event    = "",
+      decision = "",
+    }
+  }
+}
+
+loki.write "local" {
+  endpoint {
+    url = "http://loki:3100/loki/api/v1/push"
+  }
+
+  external_labels = {
+    environment = "production",
+  }
+}

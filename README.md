@@ -112,6 +112,7 @@ The EPKK runway headings and thresholds in `src/airports/epkk.js` come from AIP 
 - [OpenSky credentials and quota](docs/opensky.md)
 - [Prediction model and readiness criteria](docs/prediction.md)
 - [Migration to local readsb/dump1090](docs/local-adsb.md)
+- [Local Loki, Alloy, and Grafana log processing](docs/observability.md)
 
 ## Stop and update
 
