@@ -80,6 +80,10 @@ services:
       GF_USERS_ALLOW_SIGN_UP: "false"
       GF_ANALYTICS_REPORTING_ENABLED: "false"
       GF_ANALYTICS_CHECK_FOR_UPDATES: "false"
+      # Grafana 13.2 ships Prometheus as a standalone plugin. Install it
+      # synchronously so datasource provisioning cannot race plugin startup.
+      GF_PLUGINS_PREINSTALL_SYNC: prometheus@13.2.1
+      GF_PLUGINS_PREINSTALL_AUTO_UPDATE: "false"
     ports:
       - "${GRAFANA_BIND_ADDRESS:-0.0.0.0}:${GRAFANA_PORT:-3000}:3000"
     volumes:

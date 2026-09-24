@@ -20,6 +20,8 @@ test('observability configs provide logs and a local weather metrics dashboard',
   );
   assert.match(compose, /alloy:[\s\S]*cap_add:[\s\S]*- DAC_OVERRIDE/);
   assert.match(compose, /prom\/prometheus:v3\.13\.3/);
+  assert.match(compose, /GF_PLUGINS_PREINSTALL_SYNC: prometheus@13\.2\.1/);
+  assert.match(compose, /GF_PLUGINS_PREINSTALL_AUTO_UPDATE: "false"/);
   assert.match(compose, /--storage\.tsdb\.retention\.time=365d/);
   assert.match(compose, /--storage\.tsdb\.retention\.size=1GB/);
   assert.doesNotMatch(compose, /3100:3100|12345:12345|9090:9090/);
