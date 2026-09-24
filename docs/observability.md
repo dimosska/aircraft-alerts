@@ -9,7 +9,7 @@ The stack is intentionally separate from the main Compose file:
 - Loki `3.7.0`, monolithic mode, TSDB schema v13, filesystem storage, 14-day retention;
 - Grafana Alloy `1.19.2` for Docker discovery and collection;
 - Grafana `13.2.2` (free default image), pre-provisioned Loki source and dashboard;
-- Grafana bound only to `127.0.0.1`; Loki and Alloy have no host ports.
+- Grafana bound to the configurable LAN-facing address; Loki and Alloy have no host ports.
 
 ## Configure and start
 
@@ -20,6 +20,7 @@ openssl rand -base64 32
 ```
 
 ```env
+GRAFANA_BIND_ADDRESS=0.0.0.0
 GRAFANA_PORT=3000
 GRAFANA_ADMIN_USER=admin
 GRAFANA_ADMIN_PASSWORD=paste-the-generated-value-here
@@ -36,15 +37,17 @@ docker compose -f docker-compose.yml -f observability/docker-compose.yml logs --
 
 The first start downloads approximately three additional images. Existing predictor, n8n, and Redis data is preserved.
 
-## Open Grafana securely
+## Open Grafana on the local network
 
-Grafana is not exposed on the server's public interfaces. From your computer, create an SSH tunnel:
+Open Grafana from another device on the same LAN:
 
-```bash
-ssh -L 3000:127.0.0.1:3000 SERVER_USER@SERVER_IP
+```text
+http://SERVER_LAN_IP:3000
 ```
 
-Open `http://127.0.0.1:3000`, sign in with the credentials from `.env`, and open **Dashboards → Aircraft Alerts → Aircraft Alerts — Log Decisions**.
+Sign in with the credentials from `.env`, and open **Dashboards → Aircraft Alerts → Aircraft Alerts — Log Decisions**.
+
+`GRAFANA_BIND_ADDRESS=0.0.0.0` listens on every server interface. Restrict TCP port 3000 with the host/router firewall to your trusted local subnet and do not forward it from the Internet. If the server has a stable LAN address, setting `GRAFANA_BIND_ADDRESS` to that address is stricter. To restore SSH-tunnel-only access, use `GRAFANA_BIND_ADDRESS=127.0.0.1`.
 
 ## Useful LogQL queries
 
@@ -97,7 +100,7 @@ sum by (decision) (
 
 ## Security and operations
 
-Alloy needs read access to `/var/run/docker.sock` to discover and read predictor logs. Access to the Docker socket is security-sensitive even when mounted read-only; do not expose the Alloy UI, and keep the pinned image updated. Loki has no authentication because it is reachable only inside the private Compose network.
+Alloy needs read access to `/var/run/docker.sock` to discover and read predictor logs. Access to the Docker socket is security-sensitive even when mounted read-only; do not expose the Alloy UI, and keep the pinned image updated. Loki has no authentication because it is reachable only inside the private Compose network. Grafana is authenticated, but its port must still be limited to the trusted LAN.
 
 Retention is 14 days (`336h`). Loki retention is enforced by the Compactor. The three named volumes survive container recreation. To stop the optional stack without deleting data:
 
