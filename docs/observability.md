@@ -11,6 +11,8 @@ The stack is intentionally separate from the main Compose file:
 - Grafana `13.2.2` (free default image), pre-provisioned Loki source and dashboard;
 - Grafana bound to the configurable LAN-facing address; Loki and Alloy have no host ports.
 
+Alloy discovers the stable Compose service name `predictor`; it does not depend on the Compose project name, which may be overridden on a server.
+
 ## Configure and start
 
 Generate a password locally and add it to `.env`:
@@ -47,6 +49,8 @@ http://SERVER_LAN_IP:3000
 
 Sign in with the credentials from `.env`, and open **Dashboards → Aircraft Alerts → Aircraft Alerts — Log Decisions**.
 
+The dashboard has selectors for event, level, decision, callsign, and rejection reason. The **All predictor logs** panel deliberately queries only the stable `job="aircraft-alerts"` label, so it also shows startup, polling, and error records when Docker Compose metadata differs between hosts.
+
 `GRAFANA_BIND_ADDRESS=0.0.0.0` listens on every server interface. Restrict TCP port 3000 with the host/router firewall to your trusted local subnet and do not forward it from the Internet. If the server has a stable LAN address, setting `GRAFANA_BIND_ADDRESS` to that address is stricter. To restore SSH-tunnel-only access, use `GRAFANA_BIND_ADDRESS=127.0.0.1`.
 
 ## Useful LogQL queries
@@ -56,13 +60,13 @@ Run these in Grafana **Explore**, with the pre-provisioned `Loki` data source.
 All aircraft decisions:
 
 ```logql
-{compose_project="aircraft-alerts", compose_service="predictor", event="aircraft_evaluated"} | json
+{job="aircraft-alerts", event="aircraft_evaluated"} | json
 ```
 
 Rejected aircraft with readable fields:
 
 ```logql
-{compose_project="aircraft-alerts", compose_service="predictor", event="aircraft_evaluated", decision="rejected"}
+{job="aircraft-alerts", event="aircraft_evaluated", decision="rejected"}
 | json
 | line_format "{{.callsign}} {{.icao24}} altitude={{.altitudeFeet}}ft track={{.trueTrackDegrees}}° airport={{.airportDistanceKilometers}}km home={{.homeDistanceKilometers}}km reasons={{.rejectionReasons}}"
 ```
@@ -70,7 +74,7 @@ Rejected aircraft with readable fields:
 Only stale positions:
 
 ```logql
-{compose_project="aircraft-alerts", compose_service="predictor", event="aircraft_evaluated", decision="rejected"}
+{job="aircraft-alerts", event="aircraft_evaluated", decision="rejected"}
 |= "stale_position"
 | json
 ```
@@ -78,7 +82,7 @@ Only stale positions:
 One callsign without creating a high-cardinality index label:
 
 ```logql
-{compose_project="aircraft-alerts", compose_service="predictor", event="aircraft_evaluated"}
+{job="aircraft-alerts", event="aircraft_evaluated"}
 |= "RYR9DA"
 | json
 | callsign="RYR9DA"
@@ -87,16 +91,40 @@ One callsign without creating a high-cardinality index label:
 Application errors:
 
 ```logql
-{compose_project="aircraft-alerts", compose_service="predictor", level="error"} | json
+{job="aircraft-alerts", level="error"} | json
 ```
 
 Accepted-versus-rejected rate over five minutes:
 
 ```logql
 sum by (decision) (
-  count_over_time({compose_project="aircraft-alerts", compose_service="predictor", event="aircraft_evaluated"}[5m])
+  count_over_time({job="aircraft-alerts", event="aircraft_evaluated"}[5m])
 )
 ```
+
+## Troubleshoot an empty dashboard
+
+First confirm that the predictor is producing structured records and that Alloy can see its container:
+
+```bash
+docker compose logs --since=5m predictor
+docker compose -f docker-compose.yml -f observability/docker-compose.yml logs --since=5m alloy loki
+docker inspect aircraft-alerts-predictor-1 --format '{{json .Config.Labels}}'
+```
+
+Then generate a fresh poll and wait a few seconds for ingestion:
+
+```bash
+docker compose exec n8n node -e 'fetch("http://predictor:8080/poll",{method:"POST"}).then(async r=>console.log(r.status,await r.text()))'
+```
+
+In Grafana **Explore**, select Loki and run the broadest diagnostic query:
+
+```logql
+{job="aircraft-alerts"}
+```
+
+Use a time range such as **Last 15 minutes**. If predictor logs exist but this query is empty, inspect Alloy logs for Docker socket or Loki write errors. The dashboard selectors are populated from indexed Loki labels and therefore cannot contain values until at least one log has been ingested.
 
 ## Security and operations
 

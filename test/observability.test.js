@@ -2,7 +2,7 @@ import assert from 'node:assert/strict';
 import { readFile } from 'node:fs/promises';
 import { test } from 'node:test';
 
-test('observability configs use bounded labels, TSDB v13, and configurable Grafana binding', async () => {
+test('observability configs use bounded labels, TSDB v13, and a filterable Grafana dashboard', async () => {
   const [compose, loki, alloy, datasource, dashboard] = await Promise.all([
     readFile('observability/docker-compose.yml', 'utf8'),
     readFile('observability/loki-config.yml', 'utf8'),
@@ -22,7 +22,17 @@ test('observability configs use bounded labels, TSDB v13, and configurable Grafa
   assert.match(loki, /retention_enabled: true/);
   assert.match(alloy, /compose_service/);
   assert.match(alloy, /regex\s+= "predictor"/);
+  assert.doesNotMatch(alloy, /regex\s+= "aircraft-alerts"/);
   assert.doesNotMatch(alloy, /callsign\s+=|icao24\s+=/);
   assert.match(datasource, /url: http:\/\/loki:3100/);
-  assert.equal(JSON.parse(dashboard).uid, 'aircraft-alerts-logs');
+  const parsedDashboard = JSON.parse(dashboard);
+  assert.equal(parsedDashboard.uid, 'aircraft-alerts-logs');
+  assert.deepEqual(
+    parsedDashboard.templating.list.map((variable) => variable.name),
+    ['event', 'level', 'decision', 'callsign', 'reason'],
+  );
+  assert.ok(parsedDashboard.panels.every((panel) =>
+    panel.targets.every((target) => target.expr.includes('job="aircraft-alerts"'))
+  ));
+  assert.ok(parsedDashboard.panels.some((panel) => panel.title === 'All predictor logs'));
 });

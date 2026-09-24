@@ -12,7 +12,7 @@
       "gridPos": { "h": 5, "w": 6, "x": 0, "y": 0 },
       "id": 1,
       "options": { "colorMode": "background", "graphMode": "none", "justifyMode": "auto", "orientation": "auto", "reduceOptions": { "calcs": ["lastNotNull"], "fields": "", "values": false }, "textMode": "auto", "wideLayout": true },
-      "targets": [{ "datasource": { "type": "loki", "uid": "loki" }, "editorMode": "code", "expr": "sum(count_over_time({compose_project=\"aircraft-alerts\", compose_service=\"predictor\", event=\"aircraft_evaluated\", decision=\"accepted\"}[$__range]))", "queryType": "instant", "refId": "A" }],
+      "targets": [{ "datasource": { "type": "loki", "uid": "loki" }, "editorMode": "code", "expr": "sum(count_over_time({job=\"aircraft-alerts\", event=\"aircraft_evaluated\", decision=\"accepted\"}[$__range]))", "queryType": "instant", "refId": "A" }],
       "title": "Accepted aircraft",
       "type": "stat"
     },
@@ -22,7 +22,7 @@
       "gridPos": { "h": 5, "w": 6, "x": 6, "y": 0 },
       "id": 2,
       "options": { "colorMode": "background", "graphMode": "none", "justifyMode": "auto", "orientation": "auto", "reduceOptions": { "calcs": ["lastNotNull"], "fields": "", "values": false }, "textMode": "auto", "wideLayout": true },
-      "targets": [{ "datasource": { "type": "loki", "uid": "loki" }, "editorMode": "code", "expr": "sum(count_over_time({compose_project=\"aircraft-alerts\", compose_service=\"predictor\", event=\"aircraft_evaluated\", decision=\"rejected\"}[$__range]))", "queryType": "instant", "refId": "A" }],
+      "targets": [{ "datasource": { "type": "loki", "uid": "loki" }, "editorMode": "code", "expr": "sum(count_over_time({job=\"aircraft-alerts\", event=\"aircraft_evaluated\", decision=\"rejected\"}[$__range]))", "queryType": "instant", "refId": "A" }],
       "title": "Rejected aircraft",
       "type": "stat"
     },
@@ -32,7 +32,7 @@
       "gridPos": { "h": 5, "w": 6, "x": 12, "y": 0 },
       "id": 3,
       "options": { "colorMode": "background", "graphMode": "none", "justifyMode": "auto", "orientation": "auto", "reduceOptions": { "calcs": ["lastNotNull"], "fields": "", "values": false }, "textMode": "auto", "wideLayout": true },
-      "targets": [{ "datasource": { "type": "loki", "uid": "loki" }, "editorMode": "code", "expr": "sum(count_over_time({compose_project=\"aircraft-alerts\", compose_service=\"predictor\", event=\"notification_sent\"}[$__range]))", "queryType": "instant", "refId": "A" }],
+      "targets": [{ "datasource": { "type": "loki", "uid": "loki" }, "editorMode": "code", "expr": "sum(count_over_time({job=\"aircraft-alerts\", event=\"notification_sent\"}[$__range]))", "queryType": "instant", "refId": "A" }],
       "title": "Notifications sent",
       "type": "stat"
     },
@@ -42,7 +42,7 @@
       "gridPos": { "h": 5, "w": 6, "x": 18, "y": 0 },
       "id": 4,
       "options": { "colorMode": "background", "graphMode": "none", "justifyMode": "auto", "orientation": "auto", "reduceOptions": { "calcs": ["lastNotNull"], "fields": "", "values": false }, "textMode": "auto", "wideLayout": true },
-      "targets": [{ "datasource": { "type": "loki", "uid": "loki" }, "editorMode": "code", "expr": "sum(count_over_time({compose_project=\"aircraft-alerts\", compose_service=\"predictor\", event=\"notification_suppressed\"}[$__range]))", "queryType": "instant", "refId": "A" }],
+      "targets": [{ "datasource": { "type": "loki", "uid": "loki" }, "editorMode": "code", "expr": "sum(count_over_time({job=\"aircraft-alerts\", event=\"notification_suppressed\"}[$__range]))", "queryType": "instant", "refId": "A" }],
       "title": "Duplicates suppressed",
       "type": "stat"
     },
@@ -51,19 +51,95 @@
       "gridPos": { "h": 12, "w": 24, "x": 0, "y": 5 },
       "id": 5,
       "options": { "dedupStrategy": "none", "enableInfiniteScrolling": false, "enableLogDetails": true, "prettifyLogMessage": true, "showCommonLabels": false, "showLabels": false, "showTime": true, "sortOrder": "Descending", "wrapLogMessage": true },
-      "targets": [{ "datasource": { "type": "loki", "uid": "loki" }, "editorMode": "code", "expr": "{compose_project=\"aircraft-alerts\", compose_service=\"predictor\", event=\"aircraft_evaluated\"} | json", "queryType": "range", "refId": "A" }],
+      "targets": [{ "datasource": { "type": "loki", "uid": "loki" }, "editorMode": "code", "expr": "{job=\"aircraft-alerts\", event=\"aircraft_evaluated\", decision=~\"${decision:regex}\", level=~\"${level:regex}\"} | json | callsign=~\"${callsign:regex}\" | rejectionReasons=~\".*${reason:regex}.*\"", "queryType": "range", "refId": "A" }],
       "title": "Aircraft decisions",
+      "type": "logs"
+    },
+    {
+      "datasource": { "type": "loki", "uid": "loki" },
+      "gridPos": { "h": 9, "w": 24, "x": 0, "y": 17 },
+      "id": 6,
+      "options": { "dedupStrategy": "none", "enableInfiniteScrolling": false, "enableLogDetails": true, "prettifyLogMessage": true, "showCommonLabels": false, "showLabels": true, "showTime": true, "sortOrder": "Descending", "wrapLogMessage": true },
+      "targets": [{ "datasource": { "type": "loki", "uid": "loki" }, "editorMode": "code", "expr": "{job=\"aircraft-alerts\", event=~\"${event:regex}\", level=~\"${level:regex}\"} | json", "queryType": "range", "refId": "A" }],
+      "title": "All predictor logs",
       "type": "logs"
     }
   ],
   "refresh": "30s",
   "schemaVersion": 41,
   "tags": ["aircraft-alerts", "loki"],
-  "templating": { "list": [] },
+  "templating": {
+    "list": [
+      {
+        "allValue": ".*",
+        "current": { "selected": true, "text": "All", "value": "$__all" },
+        "datasource": { "type": "loki", "uid": "loki" },
+        "definition": "label_values({job=\"aircraft-alerts\"}, event)",
+        "includeAll": true,
+        "label": "Event",
+        "multi": true,
+        "name": "event",
+        "options": [],
+        "query": { "label": "event", "refId": "LokiVariableQueryEditor-Event", "stream": "{job=\"aircraft-alerts\"}", "type": 1 },
+        "refresh": 2,
+        "regex": "",
+        "sort": 1,
+        "type": "query"
+      },
+      {
+        "allValue": ".*",
+        "current": { "selected": true, "text": "All", "value": "$__all" },
+        "datasource": { "type": "loki", "uid": "loki" },
+        "definition": "label_values({job=\"aircraft-alerts\"}, level)",
+        "includeAll": true,
+        "label": "Level",
+        "multi": true,
+        "name": "level",
+        "options": [],
+        "query": { "label": "level", "refId": "LokiVariableQueryEditor-Level", "stream": "{job=\"aircraft-alerts\"}", "type": 1 },
+        "refresh": 2,
+        "regex": "",
+        "sort": 1,
+        "type": "query"
+      },
+      {
+        "allValue": ".*",
+        "current": { "selected": true, "text": "All", "value": "$__all" },
+        "datasource": { "type": "loki", "uid": "loki" },
+        "definition": "label_values({job=\"aircraft-alerts\", event=\"aircraft_evaluated\"}, decision)",
+        "includeAll": true,
+        "label": "Decision",
+        "multi": true,
+        "name": "decision",
+        "options": [],
+        "query": { "label": "decision", "refId": "LokiVariableQueryEditor-Decision", "stream": "{job=\"aircraft-alerts\", event=\"aircraft_evaluated\"}", "type": 1 },
+        "refresh": 2,
+        "regex": "",
+        "sort": 1,
+        "type": "query"
+      },
+      {
+        "current": { "selected": true, "text": ".*", "value": ".*" },
+        "label": "Callsign regex",
+        "name": "callsign",
+        "options": [{ "selected": true, "text": ".*", "value": ".*" }],
+        "query": ".*",
+        "type": "textbox"
+      },
+      {
+        "current": { "selected": true, "text": ".*", "value": ".*" },
+        "label": "Reason regex",
+        "name": "reason",
+        "options": [{ "selected": true, "text": ".*", "value": ".*" }],
+        "query": ".*",
+        "type": "textbox"
+      }
+    ]
+  },
   "time": { "from": "now-6h", "to": "now" },
   "timepicker": {},
   "timezone": "browser",
   "title": "Aircraft Alerts — Log Decisions",
   "uid": "aircraft-alerts-logs",
-  "version": 1
+  "version": 2
 }

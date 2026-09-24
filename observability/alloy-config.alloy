@@ -6,12 +6,9 @@ discovery.docker "local" {
 discovery.relabel "predictor" {
   targets = discovery.docker.local.targets
 
-  rule {
-    source_labels = ["__meta_docker_container_label_com_docker_compose_project"]
-    regex         = "aircraft-alerts"
-    action        = "keep"
-  }
-
+  // Match the Compose service instead of the project name. The project name
+  // can legitimately be overridden with COMPOSE_PROJECT_NAME or `docker
+  // compose -p`, while the service name remains stable.
   rule {
     source_labels = ["__meta_docker_container_label_com_docker_compose_service"]
     regex         = "predictor"
