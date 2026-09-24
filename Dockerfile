@@ -8,6 +8,8 @@ COPY src ./src
 COPY test ./test
 COPY scripts ./scripts
 COPY n8n ./n8n
+COPY docker-compose.yml ./docker-compose.yml
+COPY observability ./observability
 RUN npm test
 
 FROM node:24.14.1-alpine3.23 AS production
