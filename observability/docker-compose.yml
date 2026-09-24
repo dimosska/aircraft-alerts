@@ -40,6 +40,11 @@ services:
       - no-new-privileges:true
     cap_drop:
       - ALL
+    # The image-owned persistent data directory uses Alloy's UID, while root
+    # is required to read the host Docker socket portably. Allow root to write
+    # only through normal filesystem DAC checks without restoring other caps.
+    cap_add:
+      - DAC_OVERRIDE
 
   grafana:
     image: grafana/grafana:13.2.2

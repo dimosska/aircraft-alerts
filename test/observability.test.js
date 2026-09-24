@@ -15,6 +15,7 @@ test('observability configs use bounded labels, TSDB v13, and a filterable Grafa
     compose,
     /\$\{GRAFANA_BIND_ADDRESS:-0\.0\.0\.0\}:\$\{GRAFANA_PORT:-3000\}:3000/,
   );
+  assert.match(compose, /alloy:[\s\S]*cap_add:[\s\S]*- DAC_OVERRIDE/);
   assert.doesNotMatch(compose, /3100:3100|12345:12345/);
   assert.match(loki, /store: tsdb/);
   assert.match(loki, /schema: v13/);

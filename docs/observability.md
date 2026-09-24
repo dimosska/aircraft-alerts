@@ -128,7 +128,7 @@ Use a time range such as **Last 15 minutes**. If predictor logs exist but this q
 
 ## Security and operations
 
-Alloy needs read access to `/var/run/docker.sock` to discover and read predictor logs. Access to the Docker socket is security-sensitive even when mounted read-only; do not expose the Alloy UI, and keep the pinned image updated. Loki has no authentication because it is reachable only inside the private Compose network. Grafana is authenticated, but its port must still be limited to the trusted LAN.
+Alloy needs read access to `/var/run/docker.sock` to discover and read predictor logs. Access to the Docker socket is security-sensitive even when mounted read-only; do not expose the Alloy UI, and keep the pinned image updated. Alloy runs as root for portable Docker-socket access, drops every capability, and adds back only `DAC_OVERRIDE` so it can write its image-owned persistent state directory. Loki has no authentication because it is reachable only inside the private Compose network. Grafana is authenticated, but its port must still be limited to the trusted LAN.
 
 Retention is 14 days (`336h`). Loki retention is enforced by the Compactor. The three named volumes survive container recreation. To stop the optional stack without deleting data:
 
