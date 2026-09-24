@@ -54,6 +54,8 @@ Sign in with the credentials from `.env`, and open **Dashboards → Aircraft Ale
 
 The dashboard has selectors for event, level, decision, callsign, and rejection reason. The **All predictor logs** panel deliberately queries only the stable `job="aircraft-alerts"` label, so it also shows startup, polling, and error records when Docker Compose metadata differs between hosts.
 
+The callsign and rejection-reason selectors accept regular expressions. Their default `.*` value shows every aircraft and every reason.
+
 `GRAFANA_BIND_ADDRESS=0.0.0.0` listens on every server interface. Restrict TCP port 3000 with the host/router firewall to your trusted local subnet and do not forward it from the Internet. If the server has a stable LAN address, setting `GRAFANA_BIND_ADDRESS` to that address is stricter. To restore SSH-tunnel-only access, use `GRAFANA_BIND_ADDRESS=127.0.0.1`.
 
 `GRAFANA_ADMIN_PASSWORD` initializes the administrator only when `grafana_data` is first created. Changing the value later does not modify the account stored in Grafana's database. Reset an existing password with `grafana cli admin reset-admin-password`; do not delete the volume just to change a password.

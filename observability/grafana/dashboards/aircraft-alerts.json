@@ -51,7 +51,7 @@
       "gridPos": { "h": 12, "w": 24, "x": 0, "y": 5 },
       "id": 5,
       "options": { "dedupStrategy": "none", "enableInfiniteScrolling": false, "enableLogDetails": true, "prettifyLogMessage": true, "showCommonLabels": false, "showLabels": false, "showTime": true, "sortOrder": "Descending", "wrapLogMessage": true },
-      "targets": [{ "datasource": { "type": "loki", "uid": "loki" }, "editorMode": "code", "expr": "{job=\"aircraft-alerts\", event=\"aircraft_evaluated\", decision=~\"${decision:regex}\", level=~\"${level:regex}\"} | json | callsign=~\"${callsign:regex}\" | rejectionReasons=~\".*${reason:regex}.*\"", "queryType": "range", "refId": "A" }],
+      "targets": [{ "datasource": { "type": "loki", "uid": "loki" }, "editorMode": "code", "expr": "{job=\"aircraft-alerts\", event=\"aircraft_evaluated\", decision=~\"${decision:regex}\", level=~\"${level:regex}\"} | json | callsign=~\"${callsign:raw}\" | rejectionReasons=~\".*${reason:raw}.*\"", "queryType": "range", "refId": "A" }],
       "title": "Aircraft decisions",
       "type": "logs"
     },

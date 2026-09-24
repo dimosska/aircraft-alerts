@@ -48,6 +48,10 @@ test('observability configs provide logs and a local weather metrics dashboard',
     panel.targets.every((target) => target.expr.includes('job="aircraft-alerts"'))
   ));
   assert.ok(parsedDashboard.panels.some((panel) => panel.title === 'All predictor logs'));
+  const decisionsPanel = parsedDashboard.panels.find((panel) => panel.title === 'Aircraft decisions');
+  assert.match(decisionsPanel.targets[0].expr, /callsign=~"\$\{callsign:raw\}"/);
+  assert.match(decisionsPanel.targets[0].expr, /rejectionReasons=~"\.\*\$\{reason:raw\}\.\*"/);
+  assert.doesNotMatch(decisionsPanel.targets[0].expr, /callsign:regex|reason:regex/);
   assert.match(prometheus, /job_name: weather/);
   assert.match(prometheus, /weather:8080/);
   assert.match(prometheusDatasource, /url: http:\/\/prometheus:9090/);
