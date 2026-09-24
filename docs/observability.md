@@ -58,6 +58,8 @@ The dashboard has selectors for event, level, decision, callsign, and rejection 
 
 `GRAFANA_ADMIN_PASSWORD` initializes the administrator only when `grafana_data` is first created. Changing the value later does not modify the account stored in Grafana's database. Reset an existing password with `grafana cli admin reset-admin-password`; do not delete the volume just to change a password.
 
+Grafana is the only observability container without a read-only root filesystem. Grafana 13.2 installs its externalized core plugins, including Prometheus, under `/usr/share/grafana/data/plugins-bundled` during startup. A read-only root prevents this installation and makes Grafana exit. The container still drops all Linux capabilities and uses `no-new-privileges`; Prometheus, Loki, and Alloy remain read-only.
+
 ## Useful LogQL queries
 
 Run these in Grafana **Explore**, with the pre-provisioned `Loki` data source.

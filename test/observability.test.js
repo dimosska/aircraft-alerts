@@ -22,6 +22,10 @@ test('observability configs provide logs and a local weather metrics dashboard',
   assert.match(compose, /prom\/prometheus:v3\.13\.3/);
   assert.match(compose, /GF_PLUGINS_PREINSTALL_SYNC: prometheus@13\.2\.1/);
   assert.match(compose, /GF_PLUGINS_PREINSTALL_AUTO_UPDATE: "false"/);
+  const grafanaService = compose.split('\n  grafana:')[1].split('\nvolumes:')[0];
+  assert.doesNotMatch(grafanaService, /\n\s+read_only:/);
+  assert.match(grafanaService, /cap_drop:\n\s+- ALL/);
+  assert.match(grafanaService, /depends_on:\n\s+- loki\n\s+- prometheus/);
   assert.match(compose, /--storage\.tsdb\.retention\.time=365d/);
   assert.match(compose, /--storage\.tsdb\.retention\.size=1GB/);
   assert.doesNotMatch(compose, /3100:3100|12345:12345|9090:9090/);

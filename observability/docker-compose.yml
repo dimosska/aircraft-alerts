@@ -92,7 +92,11 @@ services:
       - ./observability/grafana/dashboards:/var/lib/grafana/dashboards:ro
     depends_on:
       - loki
-    read_only: true
+      - prometheus
+    # Grafana 13.2 installs externalized core plugins under
+    # /usr/share/grafana/data/plugins-bundled during startup, so its root
+    # filesystem cannot be read-only. The container still runs without Linux
+    # capabilities and cannot gain additional privileges.
     tmpfs:
       - /tmp:size=64m,mode=1777
     security_opt:
