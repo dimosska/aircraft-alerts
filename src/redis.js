@@ -104,6 +104,18 @@ export class RedisStateStore {
     return `${this.namespace}:alert:${approachId}:${targetId}`;
   }
 
+  notificationsEnabledKey() {
+    return `${this.namespace}:notifications-enabled`;
+  }
+
+  controlCursorKey() {
+    return `${this.namespace}:control-cursor`;
+  }
+
+  controlMessageKey(messageId) {
+    return `${this.namespace}:control-message:${messageId}`;
+  }
+
   async getTracks(icao24Values) {
     if (icao24Values.length === 0) return new Map();
     const values = await this.client.command(['MGET', ...icao24Values.map((value) => this.trackKey(value))]);
@@ -145,6 +157,42 @@ export class RedisStateStore {
 
   async releaseAlert(approachId, targetId) {
     await this.client.command(['DEL', this.alertKey(approachId, targetId)]);
+  }
+
+  async notificationsEnabled() {
+    const value = await this.client.command(['GET', this.notificationsEnabledKey()]);
+    return value !== '0';
+  }
+
+  async getControlCursor() {
+    return this.client.command(['GET', this.controlCursorKey()]);
+  }
+
+  async setControlCursor(messageId) {
+    await this.client.command(['SET', this.controlCursorKey(), messageId]);
+  }
+
+  async applyNotificationCommand(messageId, command, deduplicationTtlSeconds) {
+    const script = [
+      "local state = redis.call('GET', KEYS[2]) or '1'",
+      "if not redis.call('SET', KEYS[1], '1', 'NX', 'EX', ARGV[1]) then return {0, state} end",
+      "local next = state",
+      "if ARGV[2] == 'toggle' then if state == '1' then next = '0' else next = '1' end end",
+      "if ARGV[2] == 'on' then next = '1' end",
+      "if ARGV[2] == 'off' then next = '0' end",
+      "redis.call('SET', KEYS[2], next)",
+      'return {1, next}',
+    ].join('\n');
+    const [applied, value] = await this.client.command([
+      'EVAL',
+      script,
+      '2',
+      this.controlMessageKey(messageId),
+      this.notificationsEnabledKey(),
+      deduplicationTtlSeconds,
+      command,
+    ]);
+    return { applied: applied === 1, enabled: value === '1' };
   }
 
   async ping() {

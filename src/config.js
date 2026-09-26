@@ -46,6 +46,7 @@ function topicValue(environment, name, enabled) {
 export function loadConfig(environment = process.env) {
   const notifyIphone1 = booleanValue(environment, 'NOTIFY_IPHONE_1', true);
   const notifyIphone2 = booleanValue(environment, 'NOTIFY_IPHONE_2', true);
+  const ntfyControlEnabled = booleanValue(environment, 'NTFY_CONTROL_ENABLED', false);
   const ntfyBaseUrl = new URL(environment.NTFY_BASE_URL ?? 'https://ntfy.sh');
   if (ntfyBaseUrl.protocol !== 'https:') throw new Error('NTFY_BASE_URL must use HTTPS');
   const adsbSource = environment.ADSB_SOURCE ?? 'opensky';
@@ -139,6 +140,19 @@ export function loadConfig(environment = process.env) {
         { id: 'iphone1', enabled: notifyIphone1, topic: topicValue(environment, 'NTFY_TOPIC_IPHONE_1', notifyIphone1) },
         { id: 'iphone2', enabled: notifyIphone2, topic: topicValue(environment, 'NTFY_TOPIC_IPHONE_2', notifyIphone2) },
       ].filter((target) => target.enabled),
+    },
+    control: {
+      enabled: ntfyControlEnabled,
+      topic: topicValue(environment, 'NTFY_CONTROL_TOPIC', ntfyControlEnabled),
+      initialReplaySeconds: numberValue(environment, 'NTFY_CONTROL_INITIAL_REPLAY_SECONDS', 60, {
+        minimum: 15,
+        maximum: 600,
+      }),
+      maxCommandAgeSeconds: numberValue(environment, 'NTFY_CONTROL_MAX_COMMAND_AGE_SECONDS', 120, {
+        minimum: 30,
+        maximum: 600,
+      }),
+      deduplicationTtlSeconds: 86400,
     },
   };
 }

@@ -30,9 +30,24 @@ test('configuration accepts OpenSky production defaults', () => {
   assert.equal(config.prediction.minTrueTrackDegrees, 180);
   assert.equal(config.prediction.maxTrueTrackDegrees, 270);
   assert.equal(config.notifications.targets.length, 2);
+  assert.equal(config.control.enabled, false);
   assert.deepEqual(config.aircraftFilter.allowedCategories, [3, 4, 5, 6, 7]);
   assert.equal(config.aircraftFilter.allowOperatorCallsignFallback, true);
   assert.deepEqual(config.home, { lat: 50.1, lon: 19.2, elevationMeters: 0 });
+});
+
+test('ntfy control requires its own long topic when enabled', () => {
+  assert.throws(
+    () => loadConfig({ ...validEnvironment(), NTFY_CONTROL_ENABLED: 'true' }),
+    /NTFY_CONTROL_TOPIC must be configured/,
+  );
+  const config = loadConfig({
+    ...validEnvironment(),
+    NTFY_CONTROL_ENABLED: 'true',
+    NTFY_CONTROL_TOPIC: 'c'.repeat(48),
+  });
+  assert.equal(config.control.enabled, true);
+  assert.equal(config.control.topic, 'c'.repeat(48));
 });
 
 test('true-track bounds must be ordered', () => {

@@ -35,6 +35,10 @@ class MemoryStateStore {
   async releaseAlert(approachId, targetId) {
     this.claims.delete(`${approachId}:${targetId}`);
   }
+
+  async notificationsEnabled() {
+    return true;
+  }
 }
 
 function aircraftAt(timestamp, etaAtTimestamp) {
@@ -229,4 +233,25 @@ test('an OpenSky failure does not prevent the next poll', async () => {
 
   assert.equal((await service.poll()).status, 'degraded');
   assert.equal((await service.poll()).status, 'ok');
+});
+
+test('disabled notifications skip OpenSky polling and publishing', async () => {
+  let openskyCalls = 0;
+  const logs = [];
+  const stateStore = new MemoryStateStore();
+  stateStore.notificationsEnabled = async () => false;
+  const service = new PollService({
+    config: { pollIntervalSeconds: 0, opensky: { searchRadiusKm: 50 } },
+    airport,
+    adsbClient: { states: async () => { openskyCalls += 1; } },
+    stateStore,
+    ntfyClient: { publish: async () => assert.fail('must not publish') },
+    logger: (level, event, fields) => logs.push({ level, event, ...fields }),
+  });
+
+  assert.deepEqual(await service.poll(), { status: 'skipped', reason: 'notifications_disabled' });
+  assert.equal(openskyCalls, 0);
+  assert.deepEqual(logs.at(-1), {
+    level: 'info', event: 'poll_skipped', reason: 'notifications_disabled',
+  });
 });

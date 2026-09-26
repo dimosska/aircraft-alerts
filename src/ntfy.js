@@ -18,13 +18,36 @@ export class NtfyClient {
       headers: {
         title: encodeHeader(notification.title),
         priority: this.priority,
-        tags: 'airplane,warning',
+        tags: notification.tags ?? 'airplane,warning',
         'content-type': 'text/plain; charset=utf-8',
       },
       body: notification.message,
       signal: AbortSignal.timeout(this.timeoutMilliseconds),
     });
     if (!response.ok) throw new Error(`ntfy publish failed with HTTP ${response.status}`);
+  }
+}
+
+export class NtfyControlClient {
+  constructor(options) {
+    this.baseUrl = options.baseUrl;
+    this.topic = options.topic;
+    this.fetch = options.fetchImpl ?? globalThis.fetch;
+    this.timeoutMilliseconds = options.timeoutMilliseconds ?? 8000;
+  }
+
+  async messagesSince(since) {
+    const url = new URL(`${this.baseUrl}/${encodeURIComponent(this.topic)}/json`);
+    url.searchParams.set('poll', '1');
+    url.searchParams.set('since', since);
+    const response = await this.fetch(url, {
+      headers: { accept: 'application/x-ndjson' },
+      signal: AbortSignal.timeout(this.timeoutMilliseconds),
+    });
+    if (!response.ok) throw new Error(`ntfy control poll failed with HTTP ${response.status}`);
+    const body = await response.text();
+    if (!body.trim()) return [];
+    return body.trim().split('\n').map((line) => JSON.parse(line));
   }
 }
 export function notificationForAircraft(aircraft, prediction) {

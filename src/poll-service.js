@@ -72,6 +72,10 @@ export class PollService {
   }
 
   async pollOnce() {
+    if (!(await this.stateStore.notificationsEnabled())) {
+      this.logger('info', 'poll_skipped', { reason: 'notifications_disabled' });
+      return { status: 'skipped', reason: 'notifications_disabled' };
+    }
     const feed = await this.adsbClient.states(
       this.airport.reference,
       this.config.opensky.searchRadiusKm,
