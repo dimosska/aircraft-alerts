@@ -37,6 +37,8 @@ docker compose up -d --force-recreate predictor n8n
 
 Import `n8n/workflows/notification-control.json`, inspect it, and publish it. It is separate from the existing aircraft workflow, so the already published aircraft workflow does not need to be replaced.
 
+The workflow export contains a stable workflow ID required by the n8n 2.40 CLI importer.
+
 The two workflows run independently:
 
 - aircraft polling every 15 seconds from 10:00 through 19:59;

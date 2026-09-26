@@ -22,6 +22,7 @@ test('n8n workflow is importable JSON and contains no external secrets', async (
   assert.equal(request.parameters.url, 'http://predictor:8080/poll');
   assert.equal(request.onError, 'continueRegularOutput');
   assert.equal(controlSchedule.parameters.rule.interval[0].expression, '*/15 * * * * *');
+  assert.match(controlWorkflow.id, /^[A-Za-z0-9_-]{16}$/);
   assert.equal(controlRequest.parameters.url, 'http://predictor:8080/control/sync');
   assert.equal(controlRequest.onError, 'continueRegularOutput');
   assert.equal(workflow.active, false);
