@@ -15,6 +15,8 @@ Repeat the same steps with `https://ntfy.sh/<NTFY_TOPIC_IPHONE_2>`.
 
 Do not paste either topic into chat, screenshots, tickets, Git commits, shell history shared with others, or public password managers.
 
+Remote enable/disable control uses a third unrelated topic. It must not be added as an ntfy app subscription. Follow [Apple Shortcuts notification control](notification-control.md) after both normal notification topics work.
+
 ## Test
 
 From the project directory on the server:

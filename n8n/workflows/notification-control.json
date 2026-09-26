@@ -1,0 +1,62 @@
+{
+  "name": "Aircraft notification control",
+  "nodes": [
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "cronExpression",
+              "expression": "*/15 * * * * *"
+            }
+          ]
+        }
+      },
+      "id": "88988e46-45d6-499a-9c61-dc5d6d918977",
+      "name": "Check notification control every 15 seconds",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.3,
+      "position": [0, 0]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "http://predictor:8080/control/sync",
+        "options": {
+          "timeout": 20000
+        }
+      },
+      "id": "760a3ce7-a2a1-49f8-a970-ec08a2a2d151",
+      "name": "Apply ntfy control commands",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [260, 0],
+      "onError": "continueRegularOutput"
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Check notification control every 15 seconds": {
+      "main": [
+        [
+          {
+            "node": "Apply ntfy control commands",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1",
+    "timezone": "Europe/Warsaw",
+    "saveManualExecutions": false
+  },
+  "versionId": "28e96125-a945-4b5c-bc52-90a0d650efeb",
+  "meta": {
+    "templateCredsSetupCompleted": true
+  },
+  "tags": []
+}

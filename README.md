@@ -13,6 +13,7 @@ The system does not use flight schedules. It alerts when a fresh OpenSky positio
 - Redis `8.10.2`: expiring track history and atomic per-phone alert deduplication.
 - OpenSky `/states/all`: initial ADS-B source, queried every 30 seconds inside a bounded EPKK area.
 - ntfy.sh: two independent, randomly generated topics.
+- ntfy control: a third secret topic lets Apple Shortcuts toggle alerts without inbound NAT access.
 - Weather collector: public eDWIN station `PME193`, polled once per minute without credentials.
 - Prometheus: private time-series storage for the local weather dashboard.
 
@@ -35,6 +36,7 @@ openssl rand -hex 32  # N8N_ENCRYPTION_KEY
 openssl rand -hex 32  # REDIS_PASSWORD
 openssl rand -hex 24  # NTFY_TOPIC_IPHONE_1
 openssl rand -hex 24  # NTFY_TOPIC_IPHONE_2
+openssl rand -hex 24  # NTFY_CONTROL_TOPIC
 ```
 
 Then set `HOME_LAT`, `HOME_LON`, `HOME_ELEVATION_METERS`, and the OpenSky client credentials. Never send these values in chat and never commit `.env`.
@@ -71,6 +73,8 @@ http://SERVER_IP:5678
 ```
 
 Finish local owner setup, inspect the imported workflow, and publish it. n8n requires a Schedule Trigger workflow to be published before scheduled executions start.
+
+The separate `n8n/workflows/notification-control.json` workflow checks the private ntfy control topic every 15 seconds, all day. Configure `NTFY_CONTROL_ENABLED=true` and the separately generated `NTFY_CONTROL_TOPIC` in `.env`, import that workflow, and publish it. This uses outbound HTTPS only; n8n and the predictor remain unreachable through the server's NAT. See [Apple Shortcuts notification control](docs/notification-control.md).
 
 For an already imported workflow, edit its Schedule Trigger in the UI, select **Custom (Cron)**, enter `*/15 * 10-19 * * *`, save, and publish again. Pulling the repository does not automatically replace a workflow already stored in the n8n database.
 
@@ -113,6 +117,7 @@ The EPKK runway headings and thresholds in `src/airports/epkk.js` come from AIP 
 ## Documentation
 
 - [Two-iPhone ntfy setup](docs/ntfy-iphone.md)
+- [Apple Shortcuts notification control](docs/notification-control.md)
 - [OpenSky credentials and quota](docs/opensky.md)
 - [Prediction model and readiness criteria](docs/prediction.md)
 - [Migration to local readsb/dump1090](docs/local-adsb.md)
